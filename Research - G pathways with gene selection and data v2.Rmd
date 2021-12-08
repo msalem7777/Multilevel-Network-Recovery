@@ -1,0 +1,813 @@
+---
+title: "Research"
+author: "Mohamed Salem"
+header-includes:
+  - \usepackage{mathrsfs}
+  - \usepackage{cancel}
+  - \usepackage{amsmath}
+  - \usepackage{booktabs}
+  - \usepackage{multirow}
+  - \usepackage{setspace}
+  - \usepackage{subcaption}
+  - \usepackage{caption}
+  - \usepackage{tikz}
+  - \usepackage{float}
+  - \usepackage{setspace}
+  - \usepackage{bm}
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+geometry: margin=1in
+fontsize: 10pt
+mainfont: Helvetica
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy.opts=list(width.cutoff=60),tidy=TRUE,fig.height = 4.4, fig.width = 6, fig.align = 'center', fig.pos = "H", fig.keep = "all", warning = FALSE, message = FALSE)
+```
+
+```{r , echo=F,results='hide', collapse=TRUE, include=FALSE}
+suppressPackageStartupMessages(library(knitr))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(Matrix))
+suppressPackageStartupMessages(library(MASS))
+suppressPackageStartupMessages(library(car))
+suppressPackageStartupMessages(library(kableExtra))
+suppressPackageStartupMessages(library(stargazer))
+suppressPackageStartupMessages(library(quantreg))
+suppressPackageStartupMessages(library(rpart))
+suppressPackageStartupMessages(library(fMultivar))
+suppressPackageStartupMessages(library(LaplacesDemon))
+suppressPackageStartupMessages(library(mvtnorm))
+suppressPackageStartupMessages(library(readxl))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(GGally))
+suppressPackageStartupMessages(library(tidyr))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(invgamma))
+suppressPackageStartupMessages(library(network))
+suppressPackageStartupMessages(library(sna))
+suppressPackageStartupMessages(library(geomnet))
+suppressPackageStartupMessages(library(grplasso))
+suppressPackageStartupMessages(library(grpreg))
+suppressPackageStartupMessages(library(ggnetwork))
+suppressPackageStartupMessages(library(GIGrvg))
+suppressPackageStartupMessages(library(expm))
+#suppressPackageStartupMessages(library(combinat))
+```
+
+We implement the Bayesian Ising Graphical model for selecting the genes below. Which genes are selected is essentially a function of the correlation of the individual genes with the response as well as their correlation with fellow friendly genes within the same pathway:
+
+```{r echo=FALSE,tidy.opts=list(width.cutoff=65), fig.height=3.5, fig.align='center', tidy=TRUE, comment=NA} 
+
+BIGM = function(path_features, y, curr_xi, N=1000, phi=1){
+    y_s = scale(y)
+    X_s = scale(path_features)
+    MMR = matrix(0, nrow = dim(X_s)[1], ncol = dim(X_s)[2])
+    for(i in 1:(dim(X_s)[2])){
+      MMR[,i] = (lm(y~X_s[,i]))$coefficients[2]*X_s[,i]
+    }
+    
+    J = -phi/2*t(MMR)%*%(MMR)
+    h = phi*t(MMR)%*%(y-0.5*MMR%*%c(rep(1,dim(X_s)[2])))
+    
+    #curr_xi = sample(c(0,1), 10, replace = T)
+    
+    #Matrix to hold metropolis results
+    cmat = matrix(NA, nrow = N+1, ncol = length(curr_xi))
+    cmat[1,] = curr_xi
+    
+    # Metropolis algorithm
+    for (i in 1:N){
+      for (j in 1:length(curr_xi)){
+        
+        ref_curr_xi = replace(curr_xi, curr_xi==0, -1)
+        xi_int_mat_curr = c(ref_curr_xi)%*%t(c(ref_curr_xi))
+        xi_int_mat_curr = replace(xi_int_mat_curr, xi_int_mat_curr==-1, 0)
+        rm(ref_curr_xi)
+        
+        U_current = -sum(J*upper.tri(xi_int_mat_curr, diag = FALSE))-sum(h*curr_xi)
+        
+        prop_xi = curr_xi
+        prop_xi[j] = abs(curr_xi[j]-1)
+        
+        ref_prop_xi = replace(prop_xi, prop_xi==0, -1)
+        xi_int_mat_prop = c(ref_prop_xi)%*%t(c(ref_prop_xi))
+        xi_int_mat_prop = replace(xi_int_mat_prop, xi_int_mat_prop==-1, 0)
+        rm(ref_prop_xi)
+        
+        U_proposed = -sum(J*upper.tri(xi_int_mat_prop, diag = FALSE))-sum(h*prop_xi)
+        
+        delta_U = U_proposed - U_current
+        
+        prob_flip = min(c(1, exp(-1*delta_U)))
+        
+        flipper = rbinom(1,1,prob_flip)  
+        
+        if (flipper == 1){
+          curr_xi = prop_xi  
+        }
+        
+      }
+      
+      cmat[i+1,] = curr_xi
+      
+    }
+    
+    #curr_xi = apply(cmat[(N+1-50+1):(N+1),], 2, modefunc)
+    curr_xi = as.double(colSums(cmat[(N+1-50+1):(N+1),])/((N+1)-(N+1-50+1)+1)>0.5)
+    
+    return(curr_xi)
+}
+```
+
+
+```{r echo=FALSE,tidy.opts=list(width.cutoff=65), fig.height=3.5, fig.align='center', tidy=TRUE, comment=NA} 
+# Need to change simulation setup such that means are gene specific
+# Need "high" intergene correlations between active genes
+
+# simdat
+# Randomly generated 10 features from first path via standard normal
+sigma <- matrix(c(1,0.7,-0.3,0.6,0.7,1,-0.2,0.55,-0.3,-0.2,1,-0.1,0.6,0.55,-0.1,1), ncol=4)
+first_path_features = data.frame(matrix(rmvnorm(25,rep(0,4),sigma), nrow = 25))
+
+
+# Randomly generated 10 features from first path via standard normal
+sigma2 <- matrix(c(1,0.7,-0.3,0.6,0.7,1,-0.2,0.55,-0.3,-0.2,1,-0.1,0.6,0.55,-0.1,1), ncol=4)
+second_path_features = data.frame(matrix(rmvnorm(25,rep(-1.5,4),sigma2), nrow = 25))
+
+
+# Randomly generated 10 features from first path via standard normal
+sigma3 <- matrix(c(1,0.7,-0.3,0.6,0.7,1,-0.2,0.55,-0.3,-0.2,1,-0.1,0.6,0.55,-0.1,1), ncol=4)
+third_path_features = data.frame(matrix(rmvnorm(25,rep(1.5,4),sigma2), nrow = 25))
+
+
+# Creating a y 
+y =  10*cos(first_path_features$X1)+3*(first_path_features$X2^2)+first_path_features$X1*first_path_features$X2*first_path_features$X4-0.5*sin(second_path_features$X3)+rnorm(25)
+
+first_path_features[dim(first_path_features)[1]+1,]=1
+second_path_features[dim(second_path_features)[1]+1,]=2
+third_path_features[dim(third_path_features)[1]+1,]=3
+y[dim(first_path_features)[1]]=0
+
+dat = cbind(y,first_path_features,second_path_features,third_path_features)
+colnames(dat) = c("y","X1", "X2","X3","X4","X11", "X12","X13","X14","X21", "X22","X23","X24")
+```
+
+```{r echo=FALSE,tidy.opts=list(width.cutoff=65), fig.height=3.5, fig.align='center', tidy=TRUE, comment=NA}   
+J1 = cor(first_path_features)
+z_crit = qnorm(0.95)
+corr_UB1 = ((1+J1)/(1-J1)*exp((2*z_crit)/(sqrt(dim(X)[1]-3)))-1)/((1+J1)/(1-J1)*exp((2*z_crit)/(sqrt(dim(X)[1]-3)))+1)
+corr_LB1 = ((1+J1)/(1-J1)*exp((-2*z_crit)/(sqrt(dim(X)[1]-3)))-1)/((1+J1)/(1-J1)*exp((-2*z_crit)/(sqrt(dim(X)[1]-3)))+1)
+diag(J1) = 0
+diag(corr_UB1) = 0
+diag(corr_LB1) = 0
+```
+
+```{r echo=FALSE,tidy.opts=list(width.cutoff=65), fig.height=3.5, fig.align='center', tidy=TRUE, comment=NA}   
+J2 = cor(second_path_features)
+z_crit = qnorm(0.95)
+corr_UB2 = ((1+J2)/(1-J2)*exp((2*z_crit)/(sqrt(dim(X)[1]-3)))-1)/((1+J2)/(1-J2)*exp((2*z_crit)/(sqrt(dim(X)[1]-3)))+1)
+corr_LB2 = ((1+J2)/(1-J2)*exp((-2*z_crit)/(sqrt(dim(X)[1]-3)))-1)/((1+J2)/(1-J2)*exp((-2*z_crit)/(sqrt(dim(X)[1]-3)))+1)
+diag(J2) = 0
+diag(corr_UB2) = 0
+diag(corr_LB2) = 0
+```
+
+  
+```{r echo=FALSE,tidy.opts=list(width.cutoff=65), fig.height=3.5, fig.align='center', tidy=TRUE, comment=NA} 
+# Variational Inference
+
+sigmoid = function(x){
+  return(1/(1+exp(-x)))
+}
+
+# Need to set lambda
+# Need to set sigmasq: currently set at 0.25^2, to make sd 0.25 such that 95% of random noise correlation is less than 0.5
+# Need to set h
+# Need to check whether multiplying by 2 is necessary
+# consider setting sigmasq to (max{kmeans{centers}}/3)^2
+
+
+#X=second_path_features
+VB = function(y, X, gamma_status=1, corrmat, LB_mat, LB=0.3, h=0.5, lambda = 0.9, iters=50, sigmasq=(0.5/2)^2, plot_on=FALSE){
+  
+  ELBO = numeric(iters)
+  Hx_mean = numeric(iters)
+  
+  diag(LB_mat) = 0
+  
+  y = (cor(y, X))^2
+  mus = kmeans(t(y), centers = 2)
+  #logodds = log(dnorm(y, mean = max(mus$centers), sd = sqrt(sigmasq))*as.numeric(y<1)/(dnorm(y, mean = 0, sd = sqrt(sigmasq))*as.numeric(y>0)))
+  
+  logodds = log(dnorm(y, mean = max(mus$centers), sd = max(mus$centers)/3)*as.numeric(y<1)/(dnorm(y, mean = 0, sd = max(mus$centers)/3)*as.numeric(y>0)))
+  
+  
+  p1 = sigmoid(logodds)
+  mu = 2*p1
+  #mu = sample(c(0,1),length(y), replace = T)
+  
+  a = mu + 0.5 * logodds
+  
+  qxp1 = sigmoid(+2*a)  #q_i(x_i=+1)
+  qxm1 = sigmoid(-2*a)  #q_i(x_i=-1)
+
+  logp1 = log(dnorm(y, mean = 1, sd = sqrt(sigmasq))*as.numeric(y<1))
+  logm1 = log(dnorm(y, mean = 0, sd = sqrt(sigmasq))*as.numeric(y>0))
+  #j=1
+  for (i in 1:iters){
+    if(i>15){
+      r = c(1,2,3,4,5,6,7,8,9,10)
+      model = lm(ELBO[(i-10):(i-1)]~r)
+      if(abs(coefficients(model)[2])<0.01){
+        break
+      }
+    }
+    
+    muNew = mu
+    
+    for (j in 1:length(y)){
+      
+      Sbar = sum((corrmat[j,])^2*muNew*as.numeric(abs(LB_mat[j,])>LB))
+      muNew[j] = (1-lambda)*muNew[j] + lambda*tanh(Sbar + h*gamma_status + 0.5*logodds[j])
+      
+      ELBO[i] = ELBO[i] + 0.5*(Sbar * muNew[j])
+    }
+    
+    mu = muNew
+            
+    a = mu + 0.5 * logodds
+    qxp1 = sigmoid(+2*a) #q_i(x_i=+1)
+    qxm1 = sigmoid(-2*a) #q_i(x_i=-1)    
+    Hx = -qxm1*log(qxm1+1e-10) - qxp1*log(qxp1+1e-10) #entropy        
+    
+    ELBO[i] = ELBO[i] + sum(qxp1*logp1 + qxm1*logm1) + sum(Hx)
+    Hx_mean[i] = mean(Hx)   
+    
+  }
+  
+  if(plot_on == TRUE){
+    plt_x = seq(1:(i-1))
+    plot(plt_x,ELBO[1:(i-1)])
+  }
+  
+  return(mu)
+  
+}  
+```
+
+```{r echo=FALSE,tidy.opts=list(width.cutoff=65), fig.height=3.5, fig.align='center', tidy=TRUE, comment=NA} 
+xis = round(VB(y,first_path_features, corrmat = J1, LB_mat = corr_LB1, gamma_status = 1, h=0.01, lambda = 0.7)>0,5)
+# robust between h=0 to h=0.74
+```
+
+```{r echo=FALSE,tidy.opts=list(width.cutoff=65), fig.height=3.5, fig.align='center', tidy=TRUE, comment=NA} 
+xis = round(VB(y,second_path_features, corrmat = J2, LB_mat = corr_LB2, gamma_status = -1, h=5, lambda = 0.7)>0,5)
+# robust for h >= 1.28
+```
+
+```{r echo=FALSE,tidy.opts=list(width.cutoff=65), fig.height=3.5, fig.align='center', tidy=TRUE, comment=NA} 
+xis = round(VB(y,second_path_features, corrmat = J, LB_mat = corr_LB, gamma_status = -1, h=0.2, lambda = 1)>0,5)
+```
+
+```{r echo=FALSE,tidy.opts=list(width.cutoff=65), fig.height=3.5, fig.align='center', tidy=TRUE, comment=NA} 
+
+GaussianKernelize = function(path_features, curr_xi){
+  
+  holdr = as.matrix(path_features)%*%diag(curr_xi)
+  holdr = holdr[, colSums(abs(holdr)) != 0]
+  kmat = exp(-1/2*as.matrix(dist(holdr, diag = TRUE, upper=TRUE)))
+    
+  return(kmat)
+}
+```
+
+```{r echo=FALSE,tidy.opts=list(width.cutoff=65), fig.height=3.5, fig.align='center', tidy=TRUE, comment=NA} 
+
+modefunc <- function(x){
+    tabresult <- tabulate(x)
+    themode <- which(tabresult == max(tabresult))
+    if(sum(tabresult == max(tabresult))>1) themode <- NA
+    return(themode)
+}
+```
+
+```{r echo=FALSE,tidy.opts=list(width.cutoff=65), fig.height=3.5, fig.align='center', tidy=TRUE, comment=NA} 
+# loading the data
+dat <- read_xlsx("C:/My Files/Vtech/PhD Research/data.xlsx")
+# keeping only relevant and chosen non-relevant pathway genes
+listr = list('Pathway',NA,133,39,49,36,71,1,2,3,4,5)
+deletr = numeric()
+j=0
+
+for (i in 1:(dim(dat)[2])){
+  if (!(dat[36,i] %in% listr)){
+    j = j+1
+    deletr[j] = i
+  }
+}
+
+dat = dat[-deletr]
+
+# dropping demographic variables
+dat[ ,c('ID', 'WHR', 'Age','Cholesterol','M value','Triglycerides', 'Body Mass Index', 'Insulin 0', 'Insulin 120','Glycogen (mmol/kg)','VO2 max (ml/kg/min total body weight)','Glucose 0 capillary blood who 85','status')] <- list(NULL)
+```
+
+```{r echo=FALSE,tidy.opts=list(width.cutoff=65), fig.height=3.5, fig.align='center', tidy=TRUE, comment=NA} 
+# 10 pathways of data
+old <- Sys.time()
+
+N = 5000   # Number of iterations for SSVS
+set.seed(1234)  # seed
+num_pw = 3 # any integer
+distn = "ald" # "mvn" or "ald"
+mthd = "VB" # "VB" or "MCMC"
+
+og_df = dat[-c(36),]
+group_identifier_vector = c(dat[36,])
+group_list = c("2","3","133")
+#group_list = c("1","2","3")
+
+# Creating a y 
+y = dat$`Glucose 120 capillary blood who 85`
+#y = dat$y
+y = y[-c(36)]
+y =  as.numeric(y)
+
+# Standardizing y
+y = scale(y)
+y = as.numeric(y)
+
+# Extracting the grouped pathways from the dataset
+pathway_creator = function(og_df, group_identifier_vector, group_list, num_pw){
+  listr = list()
+  for(i in 1:num_pw){
+    listr[[i]] = as.data.frame(scale(og_df[,c(group_identifier_vector==group_list[i])]))
+  }
+  
+  pwy_dfs = listr
+  
+  return(pwy_dfs)
+}
+# applying the above function
+pwy_dfs = pathway_creator(og_df, group_identifier_vector, group_list, num_pw)
+
+# Function to build correlation matrices for each of the pathways
+corr_mat_creator = function(df_list, num_pw){
+  listr = list()
+  for(i in 1:num_pw){
+    listr[[i]] = as.data.frame(cor(pwy_dfs[[i]]))
+  }
+  
+  corr_mats = listr
+  
+  return(corr_mats)
+}
+# applying the above function
+corr_mats = corr_mat_creator(pwy_dfs, num_pw)
+
+# function to build lower bound matrices from correlation matrices using normal approximation
+corr_LBs_creator = function(corr_mats, n, num_pw, alpha=0.05){
+  listr = list()
+  for(i in 1:num_pw){
+    J = corr_mats[[i]]
+    z_crit = qnorm(1-alpha)
+    listr[[i]] = as.data.frame(((1+J)/(1-J)*exp((-2*z_crit)/(sqrt(n-3)))-1)/((1+J)/(1-J)*exp((-2*z_crit)/(sqrt(n-3)))+1))
+  }
+  
+  corr_LBs = listr
+  
+  return(corr_LBs)
+}
+# applying above function
+corr_LBs = corr_LBs_creator(corr_mats, n = length(y), num_pw)
+
+# Function to create kernelized matrices for each of the pathways
+kmat_creator = function(df_list, num_pw){
+  listr = list()
+  for(i in 1:num_pw){
+    listr[[i]] = exp(-1/2*as.matrix(dist(pwy_dfs[[i]], diag = TRUE, upper=TRUE)))
+  }
+  
+  kmat_dfs = listr
+  
+  return(kmat_dfs)
+}
+
+# applying the above function
+kmat_dfs = kmat_creator(pwy_dfs, num_pw)
+
+# Function to create kernelized matrices for each of the pathways
+bigB_creator = function(kmat_dfs, num_pw){
+  listr = list()
+  for(i in 1:num_pw){
+    listr[[i]] = diag(dim(kmat_dfs[[i]])[1])
+  }
+  
+  ald_bigB_inv = listr
+  
+  return(ald_bigB_inv)
+}
+
+# applying the above function
+ald_bigB_inv = bigB_creator(kmat_dfs, num_pw)
+
+# Setting up overall variance placeholder
+sigmasq = data.frame(rep(NA, N))
+sigmasq[1,] = 1
+
+# Setting up placeholder for coefficient variance
+sigmasq_alpha = data.frame(rep(NA, N))
+sigmasq_alpha[1,] = 1
+
+# Inverse Gamma parameters for overall variance prior
+a = 0.5
+b = 0.5
+
+# Inverse Gamma parameters for coefficient variance prior
+a_al = 0.5
+b_al = 0.5
+
+# total number of variables
+var_tot = 0
+for(i in 1:num_pw){
+  var_tot = var_tot+dim(pwy_dfs[[i]])[2]
+}
+
+# Setting up placeholder for coefficients
+alpha_creator = function(num_pw, N, pwy_dfs, init = 0.5){
+  listr = list()
+  for(i in 1:num_pw){
+    listr[[i]] = matrix(NA, nrow = N, ncol = dim(pwy_dfs[[i]])[1])
+    listr[[i]][1,] = init
+  }
+  
+  alpha_mats = listr
+  
+  return(alpha_mats)
+}
+# applying the above function
+alpha_mats = alpha_creator(num_pw, N, pwy_dfs)
+
+# Setting Binomial probability
+pi_0 = 0.5
+
+# Setting Asymmetric LaPlace quantile 
+ald_p = 0.5
+
+# Setting Asymmetric LaPlace Tau 
+ald_tau = sqrt(2/(ald_p*(1-ald_p)))
+
+# Setting Asymmetric LaPlace Theta 
+ald_theta = (1-2*ald_p)/(ald_p*(1-ald_p))
+
+# Setting z initial 
+#ald_z_vec = matrix(rexp(length(y), rate=1), nrow = length(y))
+ald_z_vec = rexp(length(y), rate=1)
+ald_z_mat = diag(ald_z_vec, nrow = length(y))
+
+# Setting up a placeholder for path selection variable (10 pathways)
+gamma = matrix(NA, nrow = N, ncol = num_pw)
+# Initializing path selection variable
+gamma[1,] = rep(1,num_pw)
+
+# Setting up a placeholder for external Field variable (10 pathways)
+h = matrix(0, nrow = N, ncol = num_pw)
+
+
+prob_notnull_creator = function(num_pw, N, pwy_dfs, init = 0){
+  listr = list()
+  for(i in 1:num_pw){
+    listr[[i]] = rep(init,N)
+  }
+  
+  prob_not_null_vecs = listr
+  
+  return(prob_not_null_vecs)
+}
+# applying the above function
+prob_not_null_vecs = prob_notnull_creator(num_pw, N, pwy_dfs)
+
+# finding all possible 2^n possible ising combinations
+lister = list()
+for(i in 1:100000){
+  lister[i] = list(sample(c(-1,1), size = num_pw, replace=TRUE))
+}
+length(unique(lister))
+lister = unique(lister)
+
+sums_mat = rep(NA,(2^(length(gamma[1,]))))
+
+for(i in 1:(2^(length(gamma[1,])))){
+  sums_mat[i] = exp(sum(c(lister[[i]])%*%t(c(lister[[i]]))*upper.tri(c(lister[[i]])%*%t(c(lister[[i]])), diag = FALSE)))
+}
+
+
+#ising_denom = 0
+
+#W_mat = matrix(1, nrow = (length(gamma[1,])), ncol = (length(gamma[1,])))
+
+#for(i in 1:(2^(length(gamma[1,])))){
+#      mat_ph = c(lister[[i]])%*%t(c(lister[[i]]))
+#      mat_ph = replace(mat_ph, mat_ph == -1, 0)
+#      mat_ph = W_mat*mat_ph
+#      ising_denom = ising_denom + exp(sum(mat_ph*upper.tri(mat_ph, diag = FALSE)))
+#  }
+
+# Setting up a placeholder for gene selection variable (10 pathways)
+curr_xi_creator = function(num_pw, N, pwy_dfs){
+  listr = list()
+  for(i in 1:num_pw){
+    listr[[i]] = as.matrix(rbind(sample(c(1), dim(pwy_dfs[[i]])[2], replace = TRUE),matrix(NA, nrow=N-1, ncol=dim(pwy_dfs[[i]])[2])))
+  }
+  
+  curr_xi_dfs = listr
+  
+  return(curr_xi_dfs)
+}
+# applying the above function
+curr_xi_dfs = curr_xi_creator(num_pw, N, pwy_dfs)
+
+i=2
+
+for (i in 2:N){
+  alpha_mats_k = lapply(alpha_mats, function(x) {x <- x[i-1, ]})
+  if(distn == "mvn"){
+    for (j in 1:num_pw){
+      # sampling first path coefficients from spike slab prior
+      alpha_mats[[j]][i,] = (gamma[i-1,j])*rmvnorm(1, ginv(sigmasq[i-1,]/sigmasq_alpha[i-1,]*kmat_dfs[[j]]+t(kmat_dfs[[j]])%*%kmat_dfs[[j]])%*%t(kmat_dfs[[j]])%*%(y-0.5*Reduce("+",(Map('%*%',kmat_dfs,alpha_mats_k)))+0.5*kmat_dfs[[j]]%*%alpha_mats[[j]][i-1,]),sigmasq[i-1,]*ginv(sigmasq[i-1,]/sigmasq_alpha[i-1,]*kmat_dfs[[j]]+t(kmat_dfs[[j]])%*%kmat_dfs[[j]]))+(1-gamma[i-1,j])*rmvnorm(1, rep(0,length(y)),0.001*diag(length(y)))
+    }
+      
+      # sampling new phi
+      gamma_lstr = as.list(matrix(gamma[i-1,],nrow = length(gamma[i-1,]), ncol=1)) 
+      kmat_dfs_gammad = Map('*',kmat_dfs,gamma_lstr)
+      sigmasq[i,] = (length(y)/2*1/(0.5*sum((y-Reduce("+",(Map('%*%',kmat_dfs_gammad,alpha_mats_k))))^2)))#1/rgamma(1,length(y)/2,0.5*sum((y-kmat_1%*%alpha_1[i,]+kmat_2%*%alpha_2[i,])^2))
+  
+  } else if(distn == "ald"){
+    for (j in 1:num_pw){
+      
+      #ald_bigB_inv[[j]] = t(kmat_dfs[[j]])%*%kmat_dfs[[j]]%*%(ginv(ald_z%*%t(ald_z)))%^%(1/(length(y)^2))/(ald_tau^2) + ald_bigB_inv[[j]]
+      
+      #alpha_mats[[j]][i,] = solve(ald_bigB_inv[[j]])%*%(kmat_dfs[[j]]%*%(ginv(ald_z%*%t(ald_z)))%^%(1/(length(y)^2))%*%as.matrix(y-ald_theta*ald_z)/(ald_tau^2)+ald_bigB_inv[[j]]%*%alpha_mats[[j]][i-1,])
+      
+      ald_bigB_inv[[j]] = t(kmat_dfs[[j]])%*%kmat_dfs[[j]]%*%solve(ald_z_mat)/(ald_tau^2) + ald_bigB_inv[[j]]
+      
+      alpha_mats[[j]][i,] = solve(ald_bigB_inv[[j]])%*%(kmat_dfs[[j]]%*%(solve(ald_z_mat))%*%as.matrix(y-ald_theta*ald_z_vec)/(ald_tau^2)+ald_bigB_inv[[j]]%*%alpha_mats[[j]][i-1,])
+      
+      ald_delta_sq = ((y-Reduce("+",(Map('%*%',kmat_dfs,alpha_mats_k))))^2)/ald_tau^2
+      ald_gamma_sq = 2 + (ald_theta^2)/(ald_tau^2)
+      ald_delta = sqrt(ald_delta_sq)
+      ald_gamma = sqrt(ald_gamma_sq)
+      
+      for (k in 1:length(ald_z_vec)){
+        ald_z_vec[k] = rgig(n=1, lambda = 0.5, chi = ald_delta[k], psi = ald_gamma)
+        ald_z_mat[k,k] = ald_z_vec[k]
+      }
+    }
+          
+    # sampling new phi
+    gamma_lstr = as.list(matrix(gamma[i-1,],nrow = length(gamma[i-1,]), ncol=1)) 
+    kmat_dfs_gammad = Map('*',kmat_dfs,gamma_lstr)
+    sigmasq[i,] = (length(y)/2*1/(0.5*sum((y-Reduce("+",(Map('%*%',kmat_dfs_gammad,alpha_mats_k))))^2)))#1/rgamma(1,length(y)/2,0.5*sum((y-kmat_1%*%alpha_1[i,]+kmat_2%*%alpha_2[i,])^2))
+
+  }
+  
+  sigmasq_alpha[i,] = 1.0
+  
+  #reform_gamma_mat = replace(gamma[i-1,], gamma[i-1,]==0, -1)
+  #delta_mat = (reform_gamma_mat)%*%t(reform_gamma_mat)
+  #delta_mat = replace(delta_mat, delta_mat==-1, 0)
+  #upper_tri_delta_mat = delta_mat*upper.tri(delta_mat, diag = FALSE)
+  
+  # Ising prior
+  #prior_ising_H0 = exp(sum(upper_tri_delta_mat))/ising_denom
+  
+  # computing numerator as: pdf of all coefficients \times pdf of current variance 
+  # \times pdf of gamma vector (last one cancels out)
+  
+  alpha_mats_k = lapply(alpha_mats, function(x) {x <- x[i, ]})
+  
+  if(distn == "mvn"){
+    for (j in 1:num_pw){
+      
+      d = dmvnorm(y, (Reduce("+",(Map('%*%',kmat_dfs,alpha_mats_mvn)))),sigmasq[i,]*diag(length(y)))#*prior_ising_H0
+      
+      e = dmvnorm(y, (Reduce("+",(Map('%*%',kmat_dfs,alpha_mats_k)))-kmat_dfs[[j]]%*%alpha_mats[[j]][i,]),sigmasq[i,]*diag(length(y)))#*(1-prior_ising_H0)
+      
+      # Computing the probability that gamma j equals 1
+      prob_not_null_vecs[[j]][i] = d/(d+e)
+  
+      if(prob_not_null_vecs[[j]][i] == "NaN"){
+        prob_not_null_vecs[[j]][i] = 0
+      } else {}
+      
+      # Updating our value for gamma 1
+      if(prob_not_null_vecs[[j]][i]>=0.5){
+        gamma[i,j] = 1
+      } else {gamma[i,j] = 0}
+    }
+    
+  } else if(distn == "ald"){
+    
+    for (j in 1:num_pw){
+      
+      Ld = sum(log(daml(matrix(y,nrow = length(y)), (Reduce("+",(Map('%*%',kmat_dfs,alpha_mats_k)))),sigmasq[i,])),na.rm=TRUE)#*prior_ising_H0
+      
+      Le = sum(log(daml(matrix(y,nrow = length(y)), (Reduce("+",(Map('%*%',kmat_dfs,alpha_mats_k)))-kmat_dfs[[j]]%*%alpha_mats[[j]][i,]),sigmasq[i,])),na.rm=TRUE)#*(1-prior_ising_H0)
+      
+      d = daml(matrix(y,ncol = length(y)), t(Reduce("+",(Map('%*%',kmat_dfs,alpha_mats_k)))),sigmasq[i,]*diag(length(y)))#*prior_ising_H0
+      
+      e = daml(matrix(y,ncol = length(y)), t(Reduce("+",(Map('%*%',kmat_dfs,alpha_mats_k)))-kmat_dfs[[j]]%*%alpha_mats[[j]][i,]),sigmasq[i,]*diag(length(y)))#*(1-prior_ising_H0)
+      
+      # Computing the probability that gamma j equals 1
+      
+      #print(1/(1+exp(Le-Ld)))
+      #print(d/(d+e))
+      
+      prob_not_null_vecs[[j]][i] = (1/(1+exp(Le-Ld)))
+  
+      if(is.na(prob_not_null_vecs[[j]][i])){
+        prob_not_null_vecs[[j]][i] = 0
+      } else {}
+      
+      # Updating our value for gamma 1
+      if(prob_not_null_vecs[[j]][i]>=0.5){
+        gamma[i,j] = 1
+      } else {gamma[i,j] = 0}
+    }
+  }
+    
+  # Gene Selection
+  if(mthd == 'MCMC'){
+    if((i==2)|(i%%100==0)){
+      for(j in 1:num_pw){
+        curr_xi_dfs[[j]][i,] = BIGM(pwy_dfs[[j]], y, curr_xi_dfs[[j]][i-1,], phi = (1/sigmasq[i,]))  
+        
+        # Rebuilding Pathways using only selected genes
+        kmat_dfs[[j]] = GaussianKernelize(pwy_dfs[[j]], curr_xi_dfs[[j]][i,])
+      }
+      
+    } else {
+      for(j in 1:num_pw){
+        curr_xi_dfs[[j]][i,] = curr_xi_dfs[[j]][i-1,]
+      }
+    }
+    # variational bayes implementation
+  } else if(mthd == "VB"){
+    if((i==2)|(i%%100==0)){
+        for (j in 1:num_pw){
+            
+          if(mean(prob_not_null_vecs[[j]][1:i], na.rm=TRUE)>=0.9*mean(prob_not_null_vecs[[j]][1:(min(abs(i-1),abs(i-99)))], na.rm=TRUE)){
+              h[i,j] = h[i-1,j]+0.1*gamma[i,j]*gamma[i-1,j]
+              #print(h[i,j])
+          }
+          curr_xi_dfs[[j]][i,] = round(VB(y,pwy_dfs[[j]], corrmat = corr_mats[[j]], LB_mat = corr_LBs[[j]], gamma_status = -1*(-1^gamma[i,j]), h=h[i,j], lambda = 0.7, iters = 15)>0,0)
+          
+          # Rebuilding Pathways using only selected genes
+          kmat_dfs[[j]] = GaussianKernelize(pwy_dfs[[j]], curr_xi_dfs[[j]][i,])
+        }
+    } else {h[i,j] = h[i-1,j]}
+  }
+}
+
+
+for(j in 1:num_pw){
+  print(paste("Gamma", j, "inclusion prob:", mean(gamma[N-249:N,j], na.rm=TRUE))) 
+}
+
+for(j in 1:num_pw){
+  for(k in 1:dim(pwy_dfs[[j]])[2]){
+    print(paste("Xi", k, "in pathway", j, "inclusion prob:", mean(curr_xi_dfs[[j]][(N-250):N,k], na.rm=TRUE)))   
+  }
+}
+
+for(j in 1:num_pw){
+  alpher = colSums(alpha_mats[[j]][(N-250):N,])/251
+  print(paste("Correlation between pathway", j, "and the response variable is:", cor((kmat_dfs[[j]])%*%alpher,y))) 
+}
+
+alpha_mats_k = lapply(alpha_mats, function(x) {x <- x[(N-250):N, ]})
+alpha_mats_k = lapply(alpha_mats_k, function(x) {x <- colMeans(x)})
+
+print(paste("Correlation between full model and the response variable is:", cor(Reduce("+",(Map('%*%',kmat_dfs,alpha_mats_k))),y))) 
+
+for(j in 1:num_pw){
+  print(paste("Avg prob inclusion pathway", j,"is:", mean(prob_not_null_vecs[[j]][(N-250):N]))) 
+}
+
+
+#cor((kmat_dfs[[1]])%*%alpha_mats_k[[1]],y)
+#cor((kmat_dfs[[2]])%*%alpha_mats_k[[2]],y)
+
+new <- Sys.time() - old # calculate difference
+print(paste("Elapsed time: ", new))
+
+#quantile(prob1,c(0.025,0.975))
+```
+
+```{r echo=FALSE,tidy.opts=list(width.cutoff=65), fig.height=3.5, fig.align='center', tidy=TRUE, comment=NA} 
+# Visualizations
+total_genes = Reduce("+",lapply(pwy_dfs, function(x) {x <- dim(x)[2]}))
+node_mat = data.frame(matrix(NA, nrow = total_genes, ncol = 3))
+node_mat[1:total_genes,1] = do.call(c, lapply(pwy_dfs, function(x) {x <- colnames(x)}))
+colnames(node_mat) = c("gene_name", "pathway_number", "status")
+rownames(node_mat) <- as.character(node_mat$gene_name)
+for(j in 1:num_pw){
+  node_mat[c(colnames(pwy_dfs[[j]])),2] = j
+  node_mat[c(colnames(pwy_dfs[[j]])),3] = as.numeric(colMeans(curr_xi_dfs[[j]][(N-250):N,], na.rm = TRUE)>0.5)   
+}
+
+tail_xi = lapply(curr_xi_dfs, function(x) {x <- sum(as.numeric(colMeans(x[(N-250):N,], na.rm = TRUE)>0.5))})
+edge_mat = data.frame(matrix(NA,nrow = Reduce("+",lapply(tail_xi, function(x) {x <- choose(x,2)})), ncol =2))
+colnames(edge_mat) = c("Source", "Target")
+
+vec = c(node_mat$gene_name)
+inr = unique(vec[c(as.logical(node_mat$status))])[-1]
+ph_mat = expand.grid(inr, inr)
+
+g=c()
+for(i in 1:dim(ph_mat)[1]){
+  if(ph_mat[i,1]==ph_mat[i,2]){
+    g = append(g,i)
+  }
+}
+
+df = ph_mat[-g,]
+edge_mat  = df[!duplicated(t(apply(df, 1, sort))),]
+colnames(edge_mat) = c("Source", "Target")
+
+singular_points = node_mat[!((node_mat$gene_name %in% edge_mat$Source)|(node_mat$gene_name %in% edge_mat$Target)),1]
+singular_points = as.data.frame(cbind(singular_points,singular_points))
+colnames(singular_points) = colnames(edge_mat)
+
+edge_mat = rbind(edge_mat, singular_points)
+edge_mat$Source = as.character(edge_mat$Source)
+edge_mat$Target = as.character(edge_mat$Target)
+
+# network object
+net = network(edge_mat, directed = FALSE, loops = TRUE)
+
+# pathway affiliation
+x = data.frame(gene_name = network.vertex.names(net))
+x = merge(x, node_mat, by = "gene_name", sort = FALSE)$pathway_number
+net %v% "pathway" = as.character(x)
+
+
+viz_net_obj = ggnetwork(net, arrow.gap = 0.02, layout = "kamadakawai")
+viz_net_obj_mod = viz_net_obj
+viz_net_obj_mod$x = viz_net_obj_mod$x+num_pw*(cos((as.numeric(viz_net_obj_mod$pathway)%%(num_pw))))
+viz_net_obj_mod$y = viz_net_obj_mod$y+num_pw*(sin((as.numeric(viz_net_obj_mod$pathway)%%(num_pw))))
+viz_net_obj_mod$xend = viz_net_obj_mod$xend+num_pw*(cos((as.numeric(viz_net_obj_mod$pathway)%%(num_pw))))
+viz_net_obj_mod$yend = viz_net_obj_mod$yend+num_pw*(sin((as.numeric(viz_net_obj_mod$pathway)%%(num_pw))))
+
+# looking up names by target coordinates
+library(class)
+viz_net_obj_mod$target.names = knn(train = viz_net_obj_mod[,c('x','y')], test = viz_net_obj_mod[,c('xend','yend')], cl = viz_net_obj_mod[,c('vertex.names')], k=1)
+
+# Only connect high corrs
+elim_list = list()
+for(i in 1:dim(viz_net_obj_mod)[1]){
+  if(abs(cor(og_df[,c(viz_net_obj_mod[i,c('vertex.names')])],og_df[,c(viz_net_obj_mod[i,c('target.names')])]))<0.5){
+    elim_list = append(elim_list, i)
+  }
+}
+viz_net_obj_mod_rest = viz_net_obj_mod[!row(viz_net_obj_mod)[,1] %in% elim_list,]
+
+centroid_df = viz_net_obj_mod_rest %>%
+  group_by(pathway) %>%
+  dplyr::summarise(
+    count = n(),
+    x = (max(x,na.rm=TRUE)-min(x,na.rm=TRUE))/2+min(x,na.rm=TRUE),
+    xend = (max(x,na.rm=TRUE)-min(x,na.rm=TRUE))/2+min(x,na.rm=TRUE),
+    y = (max(y,na.rm=TRUE)-min(y,na.rm=TRUE))/2+min(y,na.rm=TRUE),
+    yend = (max(y,na.rm=TRUE)-min(y,na.rm=TRUE))/2+min(y,na.rm=TRUE)
+  )
+  
+
+ggplot(viz_net_obj_mod_rest, 
+       aes(x, y, xend = xend,yend = yend)) +
+  geom_point() +
+  geom_point(data = centroid_df,  shape = 21, col= "black", size=((4)+0.7)^2, stroke = 2)+
+  #annotate("point", x = 1, y = 1, shape = 21, size=50, colour = "blue", fill= NA)+
+  geom_edges(aes(color = pathway), alpha = 0.25) +
+  geom_nodes(aes(color = pathway), size = 1.5) +
+  scale_color_brewer("Pathway", palette = "Set1")+
+  xlim(-num_pw*3.5, num_pw*3.5)+
+  ylim(-num_pw*3.5, num_pw*3.5)
+```
+
+
+
+```{r echo=FALSE,tidy.opts=list(width.cutoff=65), fig.height=3.5, fig.align='center', tidy=TRUE, comment=NA} 
+y = as.numeric(dat$`Glucose 120 capillary blood who 85`[1:35])
+X = as.data.frame(cbind(first_path_features,second_path_features))
+group = as.factor(c(rep(1,2),rep(2,58)))
+fit = grpreg(X, y, group, penalty="grLasso")
+plot(fit)
+compare = as.data.frame(cbind((abs(coef(fit, lambda=0.05)[2:60])>0.1),c(zero_status_xi_1*zero_status_gamma_1,zero_status_xi_2*zero_status_gamma_2)))
+
+cvfit <- cv.grpreg(X, y, group, penalty="grLasso")
+plot(cvfit)
+```
