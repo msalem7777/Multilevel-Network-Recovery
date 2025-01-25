@@ -1,0 +1,14 @@
+Package: MLNR
+Type: Package
+Title: Multilevel Network Recovery
+Version: 0.1.0
+Author: Mohamed Salem
+Maintainer: <msalem@vt.edu>
+Description: Bayesian Multilevel Network Recovery
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports:
+    mvtnorm,
+    ald
+RoxygenNote: 7.2.3
