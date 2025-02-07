@@ -4,7 +4,8 @@
 #' It generates a network of elements (genes, proteins, etc.) with edges representing interactions or relationships.
 #'
 #' @param dat Data frame containing the data to visualize.
-#' @param MLN_results Results from the multilevel network recovery model.
+#' @param gam_mod Binary selection variables for sets.
+#' @param MLN_results Binary selection variables for elements.
 #' @param num_sets Number of sets (pathways) to visualize.
 #' @param set_names A character vector containing names of the sets (pathways) to be used in the visualization.
 #'
@@ -12,7 +13,7 @@
 #' @import class ggplot2 GGally network sna grpreg ggnetwork
 #'
 #' @export
-CreateNetworkViz = function(dat, MLN_results, num_sets, set_names = c("Alanine and aspartate metabolism", "ATP synthesis","c22_U133_probes(user defined)","c23_U133_probes(user defined)","JAK-Stat Signaling Pathway","Oxidative phosphorylation","OXPHOS_HG-U133A_probes(user defined)","Parkinson's disease","Ubiquinone biosynthesis","gamma-Hexachlorocyclohexane degradation")){
+CreateNetworkViz = function(dat, gam_mod, MLN_results, num_sets, set_names = c("Alanine and aspartate metabolism", "ATP synthesis","c22_U133_probes(user defined)","c23_U133_probes(user defined)","JAK-Stat Signaling Pathway","Oxidative phosphorylation","OXPHOS_HG-U133A_probes(user defined)","Parkinson's disease","Ubiquinone biosynthesis","gamma-Hexachlorocyclohexane degradation")){
 
   group_list = paste(c(1:num_sets))
   pwy_dfs = pathway_creator(dat[2:dim(dat)[2]], group_list, num_sets)
