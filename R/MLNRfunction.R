@@ -614,7 +614,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   if(mthd=="VB"){
     model_metric = outc$elbo
   } else if(mthd == "MCMC"){
-    model_metric = sum(dnorm(y, mean=(mean(y)+Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k)))), sd = 1, log = TRUE))
+    model_metric = sum(dnorm(y, mean=(Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k)))), sd = 1, log = TRUE))
   }
 
   out_list[["gamma"]] = gam_mod
@@ -635,6 +635,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   out_list[["model.metric"]] = model_metric
   out_list[["kmats"]] = kmat_dfs_fin
   out_list[["alpha.mats"]] = alpha_mats_k
+  out_list[["num_sets"]] = num_pwy
 
   return(out_list)
 
