@@ -23,9 +23,10 @@
 MLNR.predict = function(dat_pred, model, cov_transform = "scale"){
 
   # Creating a y
+  y = model[["y"]]
   alpha_mats = model[["alpha.mats"]]
   kmat_dfs = model[["kmats"]]
-  num_pwy = model[["num_pwy"]]
+  num_pwy = model[["num_sets"]]
   gam_mod = model[["gamma"]]
   selected_indcs = gam_mod*seq(1,num_pwy)
 
