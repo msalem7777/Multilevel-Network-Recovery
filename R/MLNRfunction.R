@@ -57,6 +57,8 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
                 a = 1, b = 1, ald_p = 0.5, n0=1, s0=1, pi_0 = 0.5, a_al=0.5, b_al=0.5, sigmasq_alpha=1,
                 penalty = "weights", dist = "mvn", mthd = "VB", Restarts = 1, rel_method = "mi", w_set="avg.corr"){
 
+  prcent = 1/(2*N_norm)*100
+
   eps = sqrt(.Machine$double.eps)
 
   out_list = list()
@@ -139,9 +141,13 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
       alpha_prior_V = c(alpha_prior_V, list(sigmasq_alpha*diag(nrow=nx)))
     }
   }
-
   # applying the above function
-  alpha_mats = alpha_creator(kmat_dfs, alpha_prior_V, N_norm, dist = dist)
+  if (dist == "mvn"){
+    alpha_mats = alpha_creator(y, kmat_dfs, alpha_prior_V, N_norm, dist = dist, sigmasq = sigmasq)
+  } else if(dist == "ald"){
+    alpha_mats = alpha_creator(y, kmat_dfs, alpha_prior_V, N_norm, dist = dist, sigmasq = sigmasq, ald_tau=ald_tau, ald_theta=ald_theta, ald_z_vec=ald_z_vec, ald_z_mat=ald_z_mat, ald_bigB_inv=ald_bigB_inv)
+  }
+
 
   # Setting up a placeholder for path selection variable (10 pathways)
   gamma = matrix(NA, nrow = N_norm, ncol = num_pwy)
@@ -176,16 +182,15 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   omega = 1.0
 
   for (i in 2:N_norm){
-    print(paste("i is ",i))
 
-    alpha_mats_k = lapply(alpha_mats, prv.alpha)
+    alpha_mats_k = lapply(alpha_mats, function(x) prv.alpha(x, i))
 
     selected_all = as.double(sample(seq(1, num_pwy), num_pwy))
 
     if(dist == "mvn"){
 
       # Gamma by K matrices
-      gamma_lstr = as.list(matrix(prv.alpha(gamma),nrow = length(gamma[i-1,]), ncol=1))
+      gamma_lstr = as.list(matrix(prv.alpha(gamma, i),nrow = length(gamma[i-1,]), ncol=1))
       kmat_dfs_gammad = Map('*',kmat_dfs,gamma_lstr)
 
       for (j in 1:num_pwy){
@@ -205,7 +210,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
     } else if(dist == "ald"){
 
       # Gamma by K matrices
-      gamma_lstr = as.list(matrix(prv.alpha(gamma),nrow = length(gamma[i-1,]), ncol=1))
+      gamma_lstr = as.list(matrix(prv.alpha(gamma,i),nrow = length(gamma[i-1,]), ncol=1))
       kmat_dfs_gammad = Map('*',kmat_dfs,gamma_lstr)
 
 
@@ -365,7 +370,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
         for(j in 1:num_pwy){
 
           if(rel_method == "gp"){
-            Glstr = as.list(matrix(prv.alpha(gamma),nrow = length(gamma[i-1,]), ncol=1))
+            Glstr = as.list(matrix(prv.alpha(gamma,i),nrow = length(gamma[i-1,]), ncol=1))
             KDFG = Map('*',kmat_dfs,Glstr)
             AMK = Map('*',alpha_mats_k,Glstr)
             y_tilde[[j]] = y - mean(y) - Reduce("+",(Map('%*%',KDFG,AMK))) + KDFG[[j]]%*%AMK[[j]]
@@ -388,7 +393,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
           # Rebuilding Pathways using only selected genes
           idx = replace(curr_xi_dfs[[j]][i,], is.na(curr_xi_dfs[[j]][i,]), 0)
           if(sum(idx)==0){idx=sample(1:ncol(pwy_dfs[[j]]),sample(1:ncol(pwy_dfs[[j]]),1))}
-          kmat_dfs[[j]] = hetGP::cov_gen(as.matrix(pwy_dfs[[j]][,idx]), theta=1 ,type="Gaussian")
+          kmat_dfs[[j]] = plgp::covar(as.matrix(pwy_dfs[[j]][,idx]), d=(4/(3*nrow(pwy_dfs[[j]])))^(0.2)*sqrt(1), g = 0.00001)
         }
 
       } else {
@@ -403,7 +408,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
         for (j in 1:num_pwy){
 
           if(rel_method == "gp"){
-            Glstr = as.list(matrix(prv.alpha(gamma),nrow = length(gamma[i-1,]), ncol=1))
+            Glstr = as.list(matrix(prv.alpha(gamma,i),nrow = length(gamma[i-1,]), ncol=1))
             KDFG = Map('*',kmat_dfs,Glstr)
             AMK = Map('*',alpha_mats_k,Glstr)
             y_tilde[[j]] = y - mean(y) - Reduce("+",(Map('%*%',KDFG,AMK))) + KDFG[[j]]%*%AMK[[j]]
@@ -426,7 +431,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
           # Rebuilding Pathways using only selected genes
           idx = replace(curr_xi_dfs[[j]][i,], is.na(curr_xi_dfs[[j]][i,]), 0)
           if(sum(idx)==0){idx=sample(1:ncol(pwy_dfs[[j]]),sample(1:ncol(pwy_dfs[[j]]),1))}
-          kmat_dfs[[j]] = hetGP::cov_gen(as.matrix(pwy_dfs[[j]][,idx]), theta=1 ,type="Gaussian")
+          kmat_dfs[[j]] = plgp::covar(as.matrix(pwy_dfs[[j]][,idx]), d=(4/(3*nrow(pwy_dfs[[j]])))^(0.2)*sqrt(1), g = 0.00001)
         }
       } else {
         for(j in 1:num_pwy){
@@ -434,6 +439,9 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
         }
       }
     }
+
+    prcent = prcent + 1/(2*N_norm)*100
+    cat(sprintf("\rProgress: %.1f%%", prcent))
   }
 
   MLN_gamma_results = numeric(num_pwy)
@@ -514,7 +522,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   # Rebuilding Pathways using only selected genes
   for(j in 1:num_pwy){
     xi_vec = f_xi[[j]]
-    kmat_dfs[[j]] = hetGP::cov_gen(as.matrix(pwy_dfs[[j]][, xi_vec]), theta=1, type="Gaussian")
+    kmat_dfs[[j]] = plgp::covar(as.matrix(pwy_dfs[[j]][, xi_vec]), d=(4/(3*nrow(pwy_dfs[[j]])))^(0.2)*sqrt(1), g = 0.00001)
   }
 
   selected_indcs = gam_mod*seq(1,num_pwy)
@@ -530,13 +538,18 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
     }
   }
 
-  alpha_mats = alpha_creator(kmat_dfs_fin, alpha_prior_V, N_norm, dist = dist)
+  # applying the above function
+  if (dist == "mvn"){
+    alpha_mats = alpha_creator(y, kmat_dfs_fin, alpha_prior_V, N_norm, dist = dist, sigmasq = sigmasq)
+  } else if(dist == "ald"){
+    alpha_mats = alpha_creator(y, kmat_dfs_fin, alpha_prior_V, N_norm, dist = dist, sigmasq = sigmasq, ald_tau=ald_tau, ald_theta=ald_theta, ald_z_vec=ald_z_vec, ald_z_mat=ald_z_mat, ald_bigB_inv=ald_bigB_inv)
+  }
 
   ll_vec = c()
   # YOURE USING WRONG INDEXING
   for(i in 2:N_norm){
 
-    alpha_mats_k = lapply(alpha_mats, prv.alpha)
+    alpha_mats_k = lapply(alpha_mats, function(x) prv.alpha(x, i))
 
     if(dist == "mvn"){
 
@@ -597,6 +610,9 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
 
     yhat = as.numeric(Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))
     ll_vec = c(ll_vec, sum(dnorm(y, yhat, sigmasq[i,], log=TRUE)))
+
+    prcent = prcent + 1/(2*N_norm)*100
+    cat(sprintf("\rProgress: %.1f%%", prcent))
   }
 
   # Expec alpha
@@ -637,6 +653,10 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   out_list[["alpha.mats"]] = alpha_mats_k
   out_list[["num_sets"]] = num_pwy
   out_list[["data"]] = dat
+  out_list[["all_xi"]] = MLN_results
+
+  print("Done!")
+  cat("\n")
 
   return(out_list)
 
