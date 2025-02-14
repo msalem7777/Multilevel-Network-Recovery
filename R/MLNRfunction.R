@@ -636,6 +636,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   out_list[["kmats"]] = kmat_dfs_fin
   out_list[["alpha.mats"]] = alpha_mats_k
   out_list[["num_sets"]] = num_pwy
+  out_list[["data"]] = dat
 
   return(out_list)
 
