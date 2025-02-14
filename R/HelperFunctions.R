@@ -442,7 +442,7 @@ pathway_creator_pred = function(dat_pred, dat, num_pw, transform){
   for(i in 1:num_pw){
     if(transform == "scale"){
       # Extract columns based on the group
-      plc_hld_pred = dat_pred[1:(dim(dat_pred)[1]-1), c((dat[dim(dat)[1], ]) == group_list[i])]
+      plc_hld_pred = dat_pred[1:(dim(dat_pred)[1]-1), c((dat_pred[dim(dat_pred)[1], ]) == group_list[i])]
       plc_hld_dat = dat[1:(dim(dat)[1]-1), c((dat[dim(dat)[1], ]) == group_list[i])]
 
       mu = colMeans(plc_hld_dat, na.rm = TRUE)
@@ -452,7 +452,7 @@ pathway_creator_pred = function(dat_pred, dat, num_pw, transform){
       listr[[i]] = sweep(plc_hld_pred, 2, mu, "-") / sigma
     } else if(transform == "minmax"){
       # Perform Min-Max normalization using dat's min and max
-      plc_hld_pred = dat_pred[1:(dim(dat_pred)[1]-1), c((dat[dim(dat)[1], ]) == group_list[i])]
+      plc_hld_pred = dat_pred[1:(dim(dat_pred)[1]-1), c((dat_pred[dim(dat_pred)[1], ]) == group_list[i])]
       plc_hld_dat = dat[1:(dim(dat)[1]-1), c((dat[dim(dat)[1], ]) == group_list[i])]
 
       xmin = apply(plc_hld_dat, 2, min, na.rm = TRUE)
