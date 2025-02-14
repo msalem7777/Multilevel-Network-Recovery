@@ -165,32 +165,6 @@ compute_correlation <- function(df1, df2) {
 #' @param sigmasq A scalar value for the lengthscale parameter of the Gaussian kernel
 #' @return A gram matrix resulting from the Gaussian kernel
 #' @export
-GaussianKernelize = function(path_features, curr_xi, sigmasq){
-
-  kmat = matrix(0,nrow = nrow(path_features), ncol = nrow(path_features))
-
-  if(sum(curr_xi, na.rm = TRUE)>0){
-    for(i in 1:length(curr_xi)){
-      if(curr_xi[i]==1){
-        kmat = kmat + hetGP::cov_gen(as.matrix(path_features[i]), theta = (4/(3*nrow(path_features)))^(0.2)*sqrt(sigmasq), type="Gaussian")
-      }
-    }
-  } else {
-    rand_xi = rep(0, length(curr_xi))
-
-    while(sum(rand_xi, na.rm = TRUE)==0){
-      rand_xi = sample(c(0,1), size = length(curr_xi), replace = TRUE)
-    }
-    #(4/(3*nrow(path_features)))^(0.2)*sqrt(sigmasq)
-    for(i in 1:length(curr_xi)){
-      if(rand_xi[i]==1){
-        kmat = kmat + hetGP::cov_gen(as.matrix(path_features[i]), theta = (4/(3*nrow(path_features)))^(0.2)*sqrt(sigmasq), type="Gaussian")
-      }
-    }
-  }
-
-  return(kmat)
-}
 
 #' min_max_normalization_df
 #'
@@ -218,7 +192,7 @@ min_max_normalization_df <- function(df) {
 #' @param x A matrix containing sampled numeric values
 #' @return A numeric vector of last sampled values
 #' @export
-prv.alpha = function(x){
+prv.alpha = function(x, i){
 
   if(is.matrix(x)==TRUE){
 
@@ -293,7 +267,7 @@ pathway_creator = function(dat, num_pw, transform = "scale"){
 corr_mat_creator = function(df_list, num_pw){
   listr = list()
   for(i in 1:num_pw){
-    listr[[i]] = as.data.frame(cor(pwy_dfs[[i]]))
+    listr[[i]] = as.data.frame(cor(df_list[[i]]))
     diag(listr[[i]]) = 0
   }
 
@@ -313,15 +287,11 @@ corr_mat_creator = function(df_list, num_pw){
 kmat_creator = function(df_list, num_pw){
   listr = list()
   for(i in 1:num_pw){
-    listr[[i]] = matrix(0, nrow = nrow(df_list[[i]]), ncol = nrow(df_list[[i]]))
-    for(j in 1:ncol(df_list[[i]])){
-      listr[[i]] = listr[[i]] + hetGP::cov_gen(as.matrix(df_list[[i]]), theta=(4/(3*nrow(df_list[[i]])))^(0.2)*sqrt(1), type = "Gaussian")
-    }
+      # listr[[i]] = listr[[i]] + hetGP::cov_gen(as.matrix(df_list[[i]]), theta=(4/(3*nrow(df_list[[i]])))^(0.2)*sqrt(1), type = "Gaussian")
+      listr[[i]] =  plgp::covar(as.matrix(df_list[[i]]),d=(4/(3*nrow(df_list[[i]])))^(0.2)*sqrt(1), g = 0.00001)
   }
 
-  kmat_dfs = listr
-
-  return(kmat_dfs)
+  return(listr)
 }
 
 #' bigB_creator
@@ -352,7 +322,10 @@ bigB_creator = function(kmat_dfs, num_pw){
 #' @param distn A string for the choice of distribution "mvn" for multivariate normal (default). "ald" for asymmetric LaPlace.
 #' @return A list of matrices, each containing the initial kernel weights
 #' @export
-alpha_creator = function(kmat_dfs, alpha_prior_V, N, dist = "mvn"){
+alpha_creator <- function(y, kmat_dfs, alpha_prior_V, N, dist = "mvn",
+                          sigmasq = NULL, ald_tau = NULL,
+                          ald_theta = NULL, ald_z_vec = NULL,
+                          ald_z_mat = NULL, ald_bigB_inv = NULL){
   num_pw = length(kmat_dfs)
   listr = list()
   for(i in 1:num_pw){
@@ -367,7 +340,11 @@ alpha_creator = function(kmat_dfs, alpha_prior_V, N, dist = "mvn"){
       listr[[i]][1,] = rmvnorm(1, alph_mean, alph_var)
 
     } else if(dist == "ald"){
-
+      # Check if all required arguments are provided
+      if (is.null(ald_tau) || is.null(ald_theta) || is.null(ald_z_vec) ||
+          is.null(ald_z_mat) || is.null(ald_bigB_inv)) {
+        stop("Error: Missing required arguments for 'ald' distribution.")
+      }
       ald_bigB_inv[[i]] = t(kmat_dfs[[i]])%*%solve(ald_z_mat)%*%kmat_dfs[[i]]/(sqrt(sigmasq[1,])*ald_tau^2) + solve(alpha_prior_V[[i]])
       ald_bigB = solve(ald_bigB_inv[[i]])
       alph_mean = ald_bigB%*%(kmat_dfs[[i]]%*%(solve(ald_z_mat))%*%as.matrix(y-mean(y)-ald_theta*ald_z_vec)/(sqrt(sigmasq[1,])*ald_tau^2))
@@ -376,9 +353,7 @@ alpha_creator = function(kmat_dfs, alpha_prior_V, N, dist = "mvn"){
     }
   }
 
-  alpha_mats = listr
-
-  return(alpha_mats)
+  return(listr)
 }
 
 #' prob_notnull_creator
