@@ -26,25 +26,40 @@
 #' @param rel_method Relevance method, either "gp" (uses actual observations), "mi" (mutual information), or "cor" (correlation squared).
 #' @param w_set Weight setting, such as "avg.cor" for using average correlation.
 #'
+#' @import ald
+#' @import tidyverse
+#' @import Matrix
+#' @import MASS
+#' @import car
+#' @import quantreg
+#' @import rpart
+#' @import fMultivar
+#' @import LaplacesDemon
+#' @import mvtnorm
+#' @import tidyr
+#' @import dplyr
+#' @import invgamma
+#' @import sna
+#' @import GIGrvg
+#' @import expm
+#' @import splines
+#' @import infotheo
+#' @import ClusterR
+#' @import robustbase
+#' @import plgp
+#' @import laGP
+#' @import hetGP
+#'
 #' @return MLNR model results.
 #' @export
 #'
-#' @importFrom stats cor rexp scale
-#' @importFrom mvtnorm rmvnorm
-#' @importFrom infotheo mutinformation discretize
-#' @importFrom Matrix forceSymmetric
-#' @importFrom LaplacesDemon rdirichlet
-#' @importFrom invgamma rinvgamma
-#' @importFrom expm sqrtm
-#' @importFrom robustbase covMcd
-#' @importFrom tidyr pivot_wider
-#' @importFrom dplyr filter select mutate arrange
-#'
 MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1_connected = 1, sigmasq_y = 1,
                 a = 1, b = 1, ald_p = 0.5, n0=1, s0=1, pi_0 = 0.5, a_al=0.5, b_al=0.5, sigmasq_alpha=1,
-                penalty = "function", dist = "mvn", mthd = "MCMC", Restarts = 1, rel_method = "cor", w_set="avg.corr"){
+                penalty = "weights", dist = "mvn", mthd = "VB", Restarts = 1, rel_method = "mi", w_set="avg.corr"){
 
   eps = sqrt(.Machine$double.eps)
+
+  out_list = list()
 
   # Placeholder matrices
   MLN_G_mat = as.data.frame(matrix(0, nrow = num_pwy, ncol=2))
@@ -59,9 +74,13 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   group_list = paste(c(1:num_pwy))
   y = y[-c(length(y))]
   y =  as.numeric(y)
+  nx = length(y)
 
+  out_list[["y"]] = y
+  out_list[["X"]] = dat[1:(dim(dat)[1]-1),2:dim(dat)[2]]
   # Standardizing y
   y = scale(y)
+  y =  as.numeric(y)
 
   # applying the above function
   pwy_dfs = pathway_creator(dat[2:dim(dat)[2]], num_pwy)
@@ -71,6 +90,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
     for(i in 1:num_pwy){
       y_tilde[[i]] = as.data.frame(as.numeric(cor(y,pwy_dfs[[i]])^2))
     }
+    GP_status = 0
   } else if(rel_method == "mi"){
     y_tilde = list()
     for(i in 1:num_pwy){
@@ -79,11 +99,13 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
         y_tilde[[i]][j,1] = mutinformation(discretize(y),discretize(pwy_dfs[[i]][j]), method="emp")
       }
     }
+    GP_status = 0
   } else if(rel_method == "gp"){
     y_tilde = list()
     for(i in 1:num_pwy){
       y_tilde[[i]] = y
     }
+    GP_status = 1
   }
 
   # applying the above function
@@ -119,7 +141,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   }
 
   # applying the above function
-  alpha_mats = alpha_creator(kmat_dfs, N_norm, dist = dist)
+  alpha_mats = alpha_creator(kmat_dfs, alpha_prior_V, N_norm, dist = dist)
 
   # Setting up a placeholder for path selection variable (10 pathways)
   gamma = matrix(NA, nrow = N_norm, ncol = num_pwy)
@@ -132,7 +154,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   # applying the above function
   curr_xi_dfs = curr_xi_creator(pwy_dfs, N_norm)
 
-  if (w_set=="avg.cor"){
+  if (w_set=="avg.corr"){
     # Compute average correlation between each pair of data frames
     W_mat <- matrix(NA, nrow = num_pwy, ncol = num_pwy)
 
@@ -160,7 +182,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
 
     selected_all = as.double(sample(seq(1, num_pwy), num_pwy))
 
-    if(distn == "mvn"){
+    if(dist == "mvn"){
 
       # Gamma by K matrices
       gamma_lstr = as.list(matrix(prv.alpha(gamma),nrow = length(gamma[i-1,]), ncol=1))
@@ -170,7 +192,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
 
         # sampling first path coefficients from spike slab prior
         alph_var = sigmasq[i-1,1]*solve(sigmasq[i-1,1]*solve(alpha_prior_V[[j]])+t(kmat_dfs[[j]])%*%(kmat_dfs[[j]]))
-        alph_var = as.matrix(forceSymmetric(alph_var))
+        alph_var = as.matrix(Matrix::forceSymmetric(alph_var))
         alph_mean = (1/sigmasq[i-1,1])*alph_var%*%t(kmat_dfs[[j]])%*%(y - mean(y)-omega*Reduce("+",(Map('%*%',kmat_dfs_gammad[-j],alpha_mats_k[-j]))))
         alpha_mats[[j]][i,] = rmvnorm(1, alph_mean,alph_var)
 
@@ -180,7 +202,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
       alpha_mats_k = lapply(alpha_mats, function(x) {x <- x[i, ]})
       sigmasq[i,] = rinvgamma(1,length(y)/2+a/2,0.5*sum((y- mean(y)-Reduce("+",(Map('%*%',kmat_dfs_gammad,alpha_mats_k))))^2)+b/2)
 
-    } else if(distn == "ald"){
+    } else if(dist == "ald"){
 
       # Gamma by K matrices
       gamma_lstr = as.list(matrix(prv.alpha(gamma),nrow = length(gamma[i-1,]), ncol=1))
@@ -193,7 +215,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
         ald_bigB_inv[[j]] = t(kmat_dfs[[j]])%*%solve(ald_z_mat)%*%kmat_dfs[[j]]/(sqrt(sigmasq[i-1,])*ald_tau^2) + solve(alpha_prior_V[[j]])
         ald_bigB = solve(ald_bigB_inv[[j]])
         alph_mean = ald_bigB%*%(kmat_dfs[[j]]%*%(solve(ald_z_mat))%*%as.matrix((y- mean(y)-omega*Reduce("+",(Map('%*%',kmat_dfs_gammad[-j],alpha_mats_k[-j]))))-ald_theta*ald_z_vec)/(sqrt(sigmasq[i-1,])*ald_tau^2))
-        alph_var = as.matrix(forceSymmetric(ald_bigB))
+        alph_var = as.matrix(Matrix::forceSymmetric(ald_bigB))
         alpha_mats[[j]][i,] = rmvnorm(1, alph_mean,alph_var)
       }
 
@@ -216,7 +238,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
 
     selected = as.double(sample(seq(1, num_pwy), smpl.sz))
 
-    if(distn == "mvn"){
+    if(dist == "mvn"){
       for (j in selected){
 
         gamma_flipr = gamma_lstr
@@ -270,7 +292,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
         } else {gamma[i,j] = 0}
       }
 
-    } else if(distn == "ald"){
+    } else if(dist == "ald"){
 
       for (j in selected){
 
@@ -355,17 +377,18 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
           mu_list = list()
 
           for(r in 1:Restarts){
-            outc = BIGM(y = y_tilde[[j]], pwy_dfs[[j]], corrmat = corr_mats[[j]], num_locs = ncol(pwy_dfs[[j]]), phi = (1/sigmasq[i,]), k_on = 1, N=300, rand = TRUE, prior_scaler = 1.0, lkli=distn)
+            outc = BIGM(y = y_tilde[[j]], pwy_dfs[[j]], corrmat = corr_mats[[j]], num_locs = ncol(pwy_dfs[[j]]), phi = (1/sigmasq[i,]), k_on = 1, N=300, rand = TRUE, prior_scaler = 1.0, lkli=dist)
             elbo_vec = c(elbo_vec, outc$elbo)
             mu_list = c(mu_list, list(outc$mu_r))
           }
 
+          elbo_vec[is.nan(elbo_vec)] <- 0
           curr_xi_dfs[[j]][i,] = ((p_gam*mu_list[[which.max(elbo_vec)]]+(1-p_gam)*-1)>0)*1 #new v2
 
           # Rebuilding Pathways using only selected genes
           idx = replace(curr_xi_dfs[[j]][i,], is.na(curr_xi_dfs[[j]][i,]), 0)
           if(sum(idx)==0){idx=sample(1:ncol(pwy_dfs[[j]]),sample(1:ncol(pwy_dfs[[j]]),1))}
-          kmat_dfs[[j]] = cov_gen(as.matrix(pwy_dfs[[j]][,idx]), theta=1 ,type="Gaussian")
+          kmat_dfs[[j]] = hetGP::cov_gen(as.matrix(pwy_dfs[[j]][,idx]), theta=1 ,type="Gaussian")
         }
 
       } else {
@@ -378,8 +401,6 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
       if(i%%skipper==0){
 
         for (j in 1:num_pwy){
-
-          print(paste("VB Iteration is: ", j))
 
           if(rel_method == "gp"){
             Glstr = as.list(matrix(prv.alpha(gamma),nrow = length(gamma[i-1,]), ncol=1))
@@ -394,19 +415,18 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
           mu_list = list()
 
           for(r in 1:Restarts){
-            outc = VB(y = y_tilde[[j]], X = pwy_dfs[[j]], corrmat = corr_mats[[j]], num_locs = ncol(pwy_dfs[[j]]), Sigmat = sigmasq[i,], GP = 1, lambda = 1, iters = 30, rand = TRUE, prior_scaler = 1.0, lkli = distn)
+            outc = VB(y = y_tilde[[j]], X = pwy_dfs[[j]], corrmat = corr_mats[[j]], num_locs = ncol(pwy_dfs[[j]]), Sigmat = sigmasq[i,], GP = GP_status, lambda = 1, iters = 30, rand = TRUE, prior_scaler = 1.0, lkli = dist)
             elbo_vec = c(elbo_vec, outc$elbo)
             mu_list = c(mu_list, list(outc$mu_r))
           }
 
+          elbo_vec[is.nan(elbo_vec)] <- 0
           curr_xi_dfs[[j]][i,] = ((p_gam*mu_list[[which.max(elbo_vec)]]+(1-p_gam)*-1)>0)*1 #new v2
-
-          print("VB done!")
 
           # Rebuilding Pathways using only selected genes
           idx = replace(curr_xi_dfs[[j]][i,], is.na(curr_xi_dfs[[j]][i,]), 0)
           if(sum(idx)==0){idx=sample(1:ncol(pwy_dfs[[j]]),sample(1:ncol(pwy_dfs[[j]]),1))}
-          kmat_dfs[[j]] = cov_gen(as.matrix(pwy_dfs[[j]][,idx]), theta=1 ,type="Gaussian")
+          kmat_dfs[[j]] = hetGP::cov_gen(as.matrix(pwy_dfs[[j]][,idx]), theta=1 ,type="Gaussian")
         }
       } else {
         for(j in 1:num_pwy){
@@ -443,11 +463,12 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
         mu_list = list()
 
         for(r in 1:Restarts){
-          outc = BIGM(y = y_tilde[[j]], pwy_dfs[[j]], corrmat = corr_mats[[j]], num_locs = ncol(pwy_dfs[[j]]), phi = (1/sigmasq[i,]), k_on = 1, N=300, rand = TRUE, prior_scaler = 1.0, lkli=distn)
+          outc = BIGM(y = y_tilde[[j]], pwy_dfs[[j]], corrmat = corr_mats[[j]], num_locs = ncol(pwy_dfs[[j]]), phi = (1/sigmasq[i,]), k_on = 1, N=300, rand = TRUE, prior_scaler = 1.0, lkli=dist)
           elbo_vec = c(elbo_vec, outc$elbo)
           mu_list = c(mu_list, list(outc$mu_r))
         }
 
+        elbo_vec[is.nan(elbo_vec)] <- 0
         curr_xi_dfs[[j]][i,] = ((p_gam*mu_list[[which.max(elbo_vec)]]+(1-p_gam)*-1)>0)*1 #new v2
 
         f_xi = c(f_xi,list(((p_gam*mu_list[[which.max(elbo_vec)]]+(1-p_gam)*-1)>0)*1)) #new v2
@@ -470,11 +491,12 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
         mu_list = list()
 
         for(r in 1:Restarts){
-          outc = VB(y = y_tilde[[j]], X = pwy_dfs[[j]], corrmat = corr_mats[[j]], num_locs = ncol(pwy_dfs[[j]]), Sigmat = sigmasq[i,], GP = 1, lambda = 1, iters = 30, rand = TRUE, prior_scaler = 1.0, lkli = distn)
+          outc = VB(y = y_tilde[[j]], X = pwy_dfs[[j]], corrmat = corr_mats[[j]], num_locs = ncol(pwy_dfs[[j]]), Sigmat = sigmasq[i,], GP = GP_status, lambda = 1, iters = 30, rand = TRUE, prior_scaler = 1.0, lkli = dist)
           elbo_vec = c(elbo_vec, outc$elbo)
           mu_list = c(mu_list, list(outc$mu_r))
         }
 
+        elbo_vec[is.nan(elbo_vec)] <- 0
         f_xi = c(f_xi,list(((p_gam*mu_list[[which.max(elbo_vec)]]+(1-p_gam)*-1)>0)*1)) #new v2
       }
   }
@@ -492,26 +514,31 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   # Rebuilding Pathways using only selected genes
   for(j in 1:num_pwy){
     xi_vec = f_xi[[j]]
-    kmat_dfs[[j]] = cov_gen(as.matrix(pwy_dfs[[j]][, xi_vec]), theta=1, type="Gaussian")
+    kmat_dfs[[j]] = hetGP::cov_gen(as.matrix(pwy_dfs[[j]][, xi_vec]), theta=1, type="Gaussian")
   }
 
-  kmat_dfs_fin = kmat_dfs[gam_mod*seq(1,num_pwy)]
-  alpha_mats = alpha_creator(sum(gam_mod), N_norm, kmat_dfs_fin)
+  selected_indcs = gam_mod*seq(1,num_pwy)
+  kmat_dfs_fin = kmat_dfs[selected_indcs]
+
 
   alpha_prior_V = list()
   for(i in 1:sum(gam_mod)){
     if(penalty == "function"){
-      alpha_prior_V = c(alpha_prior_V, list(sigmasq_alpha*kmat_dfs_fin[[i]]+sqrt(.Machine$double.eps)*diag(nrow = nx)))
+        alpha_prior_V = c(alpha_prior_V, list(sigmasq_alpha*kmat_dfs_fin[[i]]+sqrt(.Machine$double.eps)*diag(nrow = nx)))
     } else if(penalty == "weights"){
-      alpha_prior_V = c(alpha_prior_V, list(sigmasq_alpha*diag(nrow=nx)))
+        alpha_prior_V = c(alpha_prior_V, list(sigmasq_alpha*diag(nrow=nx)))
     }
   }
 
+  alpha_mats = alpha_creator(kmat_dfs_fin, alpha_prior_V, N_norm, dist = dist)
+
+  ll_vec = c()
+  # YOURE USING WRONG INDEXING
   for(i in 2:N_norm){
 
     alpha_mats_k = lapply(alpha_mats, prv.alpha)
 
-    if(distn == "mvn"){
+    if(dist == "mvn"){
 
       for (j in 1:sum(gam_mod)){
 
@@ -523,7 +550,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
 
         # sampling first path coefficients from spike slab prior
         alph_var = sigmasq[i-1,1]*solve(sigmasq[i-1,1]*solve(alpha_prior_V[[j]])+t(kmat_dfs_fin[[j]])%*%(kmat_dfs_fin[[j]]))
-        alph_var = as.matrix(forceSymmetric(alph_var))
+        alph_var = as.matrix(Matrix::forceSymmetric(alph_var))
         alph_mean = (1/sigmasq[i-1,1])*alph_var%*%t(kmat_dfs_fin[[j]])%*%(y - mean(y)-omega*Rem_term)
         alpha_mats[[j]][i,] = rmvnorm(1, alph_mean,alph_var)
 
@@ -533,7 +560,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
       alpha_mats_k = lapply(alpha_mats, function(x) {x <- x[i, ]})
       sigmasq[i,] = rinvgamma(1,length(y)/2+a/2,0.5*sum((y - mean(y) - Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))^2)+b/2)
 
-    } else if(distn == "ald"){
+    } else if(dist == "ald"){
 
       for (j in 1:sum(gam_mod)){
 
@@ -547,7 +574,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
         ald_bigB_inv[[j]] = t(kmat_dfs[[j]])%*%solve(ald_z_mat)%*%kmat_dfs[[j]]/(sqrt(sigmasq[i-1,])*ald_tau^2) + solve(alpha_prior_V[[j]])
         ald_bigB = solve(ald_bigB_inv[[j]])
         alph_mean = ald_bigB%*%(kmat_dfs[[j]]%*%(solve(ald_z_mat))%*%as.matrix((y- mean(y)-omega*Rem_term)-ald_theta*ald_z_vec)/(sqrt(sigmasq[i-1,])*ald_tau^2))
-        alph_var = as.matrix(forceSymmetric(ald_bigB))
+        alph_var = as.matrix(Matrix::forceSymmetric(ald_bigB))
         alpha_mats[[j]][i,] = rmvnorm(1, alph_mean,alph_var)
       }
 
@@ -567,12 +594,22 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
       alpha_mats_k = lapply(alpha_mats, function(x) {x <- x[i, ]})
       sigmasq[i,] =  (rinvgamma(1,n0/2+3*length(y)/2, s0/2+sum(ald_z_vec)+0.5*sum((solve(ald_z_mat))%*%(as.matrix(y- mean(y)-Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k)))-ald_theta*ald_z_vec)^2)/(ald_tau^2))))^2
     }
+
+    yhat = as.numeric(Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))
+    ll_vec = c(ll_vec, sum(dnorm(y, yhat, sigmasq[i,], log=TRUE)))
   }
 
-  alpha_mats_k = lapply(alpha_mats, function(x) {x <- x[N_norm*0.7:N_norm, ]})
-  alpha_mats_k = lapply(alpha_mats_k, function(x) {x <- colMeans(x, na.rm=TRUE)})
+  # Expec alpha
+  # alpha_mats_k = lapply(alpha_mats, function(x) {x <- x[(N_norm*0.7):N_norm, ]})
+  # alpha_mats_k = lapply(alpha_mats_k, function(x) {x <- colMeans(x, na.rm=TRUE)})
 
-  MLN_mse = mean((y- mean(y)-Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))^2)
+  # MAP
+  alpha_mats_k = lapply(alpha_mats, function(x) {x <- x[which.max(ll_vec), ]})
+
+  yhat = as.numeric(Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))*sd(out_list[['y']])+mean(out_list[['y']])
+  MLN_mse = mean((y-Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))^2)
+
+  out_list[["yhat"]] = yhat
 
   if(mthd=="VB"){
     model_metric = outc$elbo
@@ -580,14 +617,19 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
     model_metric = sum(dnorm(y, mean=(mean(y)+Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k)))), sd = 1, log = TRUE))
   }
 
-  out_list = list()
   out_list[["gamma"]] = gam_mod
   out_list[["gamma_prob"]] = MLN_gamma_results
+  cntr = 1
   for(j in 1:num_pwy){
+    # stringr_alpha = paste0("alpha.",j)
     stringr_xi = paste0("xi.",j)
     out_list[[stringr_xi]] = f_xi[[j]]
-    stringr_alpha = paste0("alpha.",j)
-    out_list[[stringr_alpha]] = alpha_mats_k[[j]]
+    # if(gam_mod[j]==1){
+    #   out_list[[stringr_alpha]] = alpha_mats_k[[cntr]]
+    #   cntr = cntr+1
+    # } else {
+    #   out_list[[stringr_alpha]] = rep(0, nx)
+    # }
   }
   out_list[["mse"]] = MLN_mse
   out_list[["model.metric"]] = model_metric
