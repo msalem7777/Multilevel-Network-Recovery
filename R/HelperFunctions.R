@@ -127,7 +127,7 @@ sigmoid = function(x){
 #'
 #' @param c2 A numeric vector containing squared correlation values.
 #' @param n the number of observations.
-#' @param ncp (default=0) A logical value to specify the non-centrality parameter if desired. Seeting a non-zero `ncp` switches to an F-distribution while zero is a beta distribution 
+#' @param ncp (default=0) A logical value to specify the non-centrality parameter if desired. Seeting a non-zero `ncp` switches to an F-distribution while zero is a beta distribution
 #' @return a numeric value for density.
 #' @export
 dcorr = function(c2, n, ncp=0){
@@ -136,7 +136,7 @@ dcorr = function(c2, n, ncp=0){
   } else {
     dens = df(c2, 0.5, (n-2)/2, ncp = ((n*c2)/(1-c2)))
   }
-  
+
   return(dens)
 }
 
@@ -166,29 +166,29 @@ compute_correlation <- function(df1, df2) {
 #' @return A gram matrix resulting from the Gaussian kernel
 #' @export
 GaussianKernelize = function(path_features, curr_xi, sigmasq){
-  
+
   kmat = matrix(0,nrow = nrow(path_features), ncol = nrow(path_features))
-  
+
   if(sum(curr_xi, na.rm = TRUE)>0){
     for(i in 1:length(curr_xi)){
       if(curr_xi[i]==1){
-        kmat = kmat + cov_gen(as.matrix(path_features[i]), theta = (4/(3*nrow(path_features)))^(0.2)*sqrt(sigmasq), type="Gaussian")
+        kmat = kmat + hetGP::cov_gen(as.matrix(path_features[i]), theta = (4/(3*nrow(path_features)))^(0.2)*sqrt(sigmasq), type="Gaussian")
       }
     }
   } else {
     rand_xi = rep(0, length(curr_xi))
-    
+
     while(sum(rand_xi, na.rm = TRUE)==0){
       rand_xi = sample(c(0,1), size = length(curr_xi), replace = TRUE)
     }
     #(4/(3*nrow(path_features)))^(0.2)*sqrt(sigmasq)
     for(i in 1:length(curr_xi)){
       if(rand_xi[i]==1){
-        kmat = kmat + cov_gen(as.matrix(path_features[i]), theta = (4/(3*nrow(path_features)))^(0.2)*sqrt(sigmasq), type="Gaussian")
+        kmat = kmat + hetGP::cov_gen(as.matrix(path_features[i]), theta = (4/(3*nrow(path_features)))^(0.2)*sqrt(sigmasq), type="Gaussian")
       }
     }
-  }  
-  
+  }
+
   return(kmat)
 }
 
@@ -207,7 +207,7 @@ min_max_normalization_df <- function(df) {
     normalized <- (x - min_val) / (max_val - min_val)
     return(normalized)
   }))
-  
+
   return(normalized_df)
 }
 
@@ -219,14 +219,14 @@ min_max_normalization_df <- function(df) {
 #' @return A numeric vector of last sampled values
 #' @export
 prv.alpha = function(x){
-  
+
   if(is.matrix(x)==TRUE){
-    
+
     lst.out = c()
     for(colmnr in 1:(dim(x)[2])){
-      
+
       cnt = i
-      
+
       if(is.na(x[cnt-1,colmnr])==FALSE){
         lst.out = append(lst.out, x[cnt-1,colmnr])
       } else {
@@ -234,15 +234,15 @@ prv.alpha = function(x){
           cnt = cnt-1
         lst.out = append(lst.out, x[cnt-1,colmnr])
       }
-      
+
     }
-    
+
     return(lst.out)
-    
+
   } else {
-    
+
     cnt = i
-    
+
     if(is.na(x[cnt-1,1])==FALSE){
       return(x[cnt-1,])
     } else {
@@ -250,7 +250,7 @@ prv.alpha = function(x){
         cnt = cnt-1
       return(x[cnt-1,])
     }
-    
+
   }
 }
 
@@ -265,20 +265,20 @@ prv.alpha = function(x){
 #' @return A list of set dataframes
 #' @export
 pathway_creator = function(dat, num_pw, transform = "scale"){
-  group_list = unique(dat[(dim(dat)[1]),])
+  group_list = c(unique(unlist(dat[(dim(dat)[1]),2:(dim(dat)[2])])))
   listr = list()
   for(i in 1:num_pw){
     if(transform=="scale"){
-      listr[[i]] = as.data.frame(scale(dat[1:(dim(dat)[1]-1),c((dat[dim(dat)[1],])==group_list[i])]))  
+      listr[[i]] = as.data.frame(scale(dat[1:(dim(dat)[1]-1),c((dat[dim(dat)[1],])==group_list[i])]))
     } else if(transform == "minmax"){
       listr[[i]] = min_max_normalization_df(dat[1:(dim(dat)[1]-1),c((dat[dim(dat)[1],])==group_list[i])])
     } else {
-      listr[[i]] = dat[1:(dim(dat)[1]-1),c((dat[dim(dat)[1],])==group_list[i])] 
+      listr[[i]] = dat[1:(dim(dat)[1]-1),c((dat[dim(dat)[1],])==group_list[i])]
     }
   }
-  
+
   pwy_dfs = listr
-  
+
   return(pwy_dfs)
 }
 
@@ -296,9 +296,9 @@ corr_mat_creator = function(df_list, num_pw){
     listr[[i]] = as.data.frame(cor(pwy_dfs[[i]]))
     diag(listr[[i]]) = 0
   }
-  
+
   corr_mats = listr
-  
+
   return(corr_mats)
 }
 
@@ -315,12 +315,12 @@ kmat_creator = function(df_list, num_pw){
   for(i in 1:num_pw){
     listr[[i]] = matrix(0, nrow = nrow(df_list[[i]]), ncol = nrow(df_list[[i]]))
     for(j in 1:ncol(df_list[[i]])){
-      listr[[i]] = listr[[i]] + cov_gen(as.matrix(df_list[[i]]), theta=(4/(3*nrow(df_list[[i]])))^(0.2)*sqrt(1), type = "Gaussian")
+      listr[[i]] = listr[[i]] + hetGP::cov_gen(as.matrix(df_list[[i]]), theta=(4/(3*nrow(df_list[[i]])))^(0.2)*sqrt(1), type = "Gaussian")
     }
   }
-  
+
   kmat_dfs = listr
-  
+
   return(kmat_dfs)
 }
 
@@ -337,9 +337,9 @@ bigB_creator = function(kmat_dfs, num_pw){
   for(i in 1:num_pw){
     listr[[i]] = diag(dim(kmat_dfs[[i]])[1])
   }
-  
+
   ald_bigB_inv = listr
-  
+
   return(ald_bigB_inv)
 }
 
@@ -352,32 +352,32 @@ bigB_creator = function(kmat_dfs, num_pw){
 #' @param distn A string for the choice of distribution "mvn" for multivariate normal (default). "ald" for asymmetric LaPlace.
 #' @return A list of matrices, each containing the initial kernel weights
 #' @export
-alpha_creator = function(kmat_dfs, N, dist = "mvn"){
+alpha_creator = function(kmat_dfs, alpha_prior_V, N, dist = "mvn"){
   num_pw = length(kmat_dfs)
   listr = list()
   for(i in 1:num_pw){
     listr[[i]] = matrix(NA, nrow = N, ncol = nrow(kmat_dfs[[i]]))
     # initializing alphas
-    if(distn == "mvn"){
-      
+    if(dist == "mvn"){
+
       alph_var = sigmasq[1,1]*solve(sigmasq[1,1]*solve(alpha_prior_V[[i]])+t(kmat_dfs[[i]])%*%(kmat_dfs[[i]]))
-      alph_var = as.matrix(forceSymmetric(alph_var))
+      alph_var = as.matrix(Matrix::forceSymmetric(alph_var))
       alph_mean = (1/sigmasq[1,1])*alph_var%*%t(kmat_dfs[[i]])%*%(y - mean(y))
-      
+
       listr[[i]][1,] = rmvnorm(1, alph_mean, alph_var)
-      
-    } else if(distn == "ald"){
-      
-      ald_bigB_inv[[i]] = t(kmat_dfs[[i]])%*%solve(ald_z_mat)%*%kmat_dfs[[i]]/(sqrt(sigmasq[1,])*ald_tau^2) + solve(alpha_prior_V[[i]]) 
+
+    } else if(dist == "ald"){
+
+      ald_bigB_inv[[i]] = t(kmat_dfs[[i]])%*%solve(ald_z_mat)%*%kmat_dfs[[i]]/(sqrt(sigmasq[1,])*ald_tau^2) + solve(alpha_prior_V[[i]])
       ald_bigB = solve(ald_bigB_inv[[i]])
       alph_mean = ald_bigB%*%(kmat_dfs[[i]]%*%(solve(ald_z_mat))%*%as.matrix(y-mean(y)-ald_theta*ald_z_vec)/(sqrt(sigmasq[1,])*ald_tau^2))
-      alph_var = as.matrix(forceSymmetric(ald_bigB))
+      alph_var = as.matrix(Matrix::forceSymmetric(ald_bigB))
       listr[[i]][1,] = rmvnorm(1, alph_mean,alph_var)
     }
   }
-  
+
   alpha_mats = listr
-  
+
   return(alpha_mats)
 }
 
@@ -388,7 +388,7 @@ alpha_creator = function(kmat_dfs, N, dist = "mvn"){
 #' @param pwy_dfs A list of dataframes of sets
 #' @param N A scalar numeric for the number of iterations in the Gibbs sampler
 #' @param init A numeric value for the initial probability of inclusion of sets. Default is 1
-#' @return A list of lists containing the initial inclusion probability for each set 
+#' @return A list of lists containing the initial inclusion probability for each set
 #' @export
 prob_notnull_creator = function(pwy_dfs, N, init = 1){
   num_pw = length(pwy_dfs)
@@ -396,9 +396,9 @@ prob_notnull_creator = function(pwy_dfs, N, init = 1){
   for(i in 1:num_pw){
     listr[[i]] = rep(init,N)
   }
-  
+
   prob_not_null_vecs = listr
-  
+
   return(prob_not_null_vecs)
 }
 
@@ -409,16 +409,17 @@ prob_notnull_creator = function(pwy_dfs, N, init = 1){
 #'
 #' @param pwy_dfs A list of dataframes of sets
 #' @param N A scalar numeric for the number of iterations in the Gibbs sampler
-#' @return A list of matrices containing the initial inclusion variables for each set's elements 
+#' @return A list of matrices containing the initial inclusion variables for each set's elements
 #' @export
 curr_xi_creator = function(pwy_dfs, N){
   listr = list()
+  num_pw = length(pwy_dfs)
   for(i in 1:num_pw){
     listr[[i]] = as.matrix(rbind(sample(c(1), dim(pwy_dfs[[i]])[2], replace = TRUE),matrix(NA, nrow=N-1, ncol=dim(pwy_dfs[[i]])[2])))
   }
-  
+
   curr_xi_dfs = listr
-  
+
   return(curr_xi_dfs)
 }
 
