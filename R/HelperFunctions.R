@@ -423,3 +423,34 @@ curr_xi_creator = function(pwy_dfs, N){
   return(curr_xi_dfs)
 }
 
+#' pathway_creator_pred
+#'
+#' Function to create a list of dataframes, one for each set, using the scaling of the training data
+#'
+#' @param dat A dataframe containing the data in its perferred format. Response value in first column, set number in last row.
+#' @param num_pw A scalar numeric for the number of sets in the data
+#' @param transform (default="scale") A string value indicating the desired tranformation on the covariates. "sclae" for a scale transformation. "minmax" for min-max normalization
+#' @param mu mean of training covariates
+#' @param sigma standard deviation of training covariates
+#' @param xmin minimum of training covariates
+#' @param xmax maximum of training covariates
+#' @return A list of set dataframes
+#' @export
+pathway_creator_pred = function(dat, num_pw, transform, mu=NULL, sigma=NULL, xmin=NULL, xmax=NULL){
+  group_list = c(unique(unlist(dat[(dim(dat)[1]),2:(dim(dat)[2])])))
+  listr = list()
+  for(i in 1:num_pw){
+    if(transform=="scale"){
+      plc_hld = dat[1:(dim(dat)[1]-1),c((dat[dim(dat)[1],])==group_list[i])]
+      listr[[i]] = (plc_hld-mu)/sd
+    } else if(transform == "minmax"){
+      listr[[i]] = min_max_normalization_df(dat[1:(dim(dat)[1]-1),c((dat[dim(dat)[1],])==group_list[i])])
+    } else {
+      listr[[i]] = dat[1:(dim(dat)[1]-1),c((dat[dim(dat)[1],])==group_list[i])]
+    }
+  }
+
+  pwy_dfs = listr
+
+  return(pwy_dfs)
+}
