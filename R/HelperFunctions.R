@@ -436,21 +436,34 @@ curr_xi_creator = function(pwy_dfs, N){
 #' @param xmax maximum of training covariates
 #' @return A list of set dataframes
 #' @export
-pathway_creator_pred = function(dat, num_pw, transform, mu=NULL, sigma=NULL, xmin=NULL, xmax=NULL){
+pathway_creator_pred = function(dat_pred, dat, num_pw, transform){
   group_list = c(unique(unlist(dat[(dim(dat)[1]),2:(dim(dat)[2])])))
   listr = list()
   for(i in 1:num_pw){
-    if(transform=="scale"){
-      plc_hld = dat[1:(dim(dat)[1]-1),c((dat[dim(dat)[1],])==group_list[i])]
-      listr[[i]] = (plc_hld-mu)/sd
+    if(transform == "scale"){
+      # Extract columns based on the group
+      plc_hld_pred = dat_pred[1:(dim(dat_pred)[1]-1), c((dat[dim(dat)[1], ]) == group_list[i])]
+      plc_hld_dat = dat[1:(dim(dat)[1]-1), c((dat[dim(dat)[1], ]) == group_list[i])]
+
+      mu = colMeans(plc_hld_dat, na.rm = TRUE)
+      sigma = apply(plc_hld_dat, 2, sd, na.rm = TRUE)
+
+      # Scale dat_pred using mu and sigma from dat
+      listr[[i]] = sweep(plc_hld_pred, 2, mu, "-") / sigma
     } else if(transform == "minmax"){
-      listr[[i]] = min_max_normalization_df(dat[1:(dim(dat)[1]-1),c((dat[dim(dat)[1],])==group_list[i])])
+      # Perform Min-Max normalization using dat's min and max
+      plc_hld_pred = dat_pred[1:(dim(dat_pred)[1]-1), c((dat[dim(dat)[1], ]) == group_list[i])]
+      plc_hld_dat = dat[1:(dim(dat)[1]-1), c((dat[dim(dat)[1], ]) == group_list[i])]
+
+      xmin = apply(plc_hld_dat, 2, min, na.rm = TRUE)
+      xmax = apply(plc_hld_dat, 2, max, na.rm = TRUE)
+
+      # Apply min-max normalization
+      listr[[i]] = sweep(plc_hld_pred, 2, xmin, "-") / (xmax - xmin)
     } else {
-      listr[[i]] = dat[1:(dim(dat)[1]-1),c((dat[dim(dat)[1],])==group_list[i])]
+      # No transformation, directly use the data
+      listr[[i]] = dat_pred[1:(dim(dat_pred)[1]-1), c((dat[dim(dat)[1], ]) == group_list[i])]
     }
   }
-
-  pwy_dfs = listr
-
-  return(pwy_dfs)
+  return(listr)
 }
