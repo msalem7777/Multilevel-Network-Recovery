@@ -20,26 +20,32 @@
 #' @importFrom tidyr pivot_wider
 #' @importFrom dplyr filter select mutate arrange
 #'
-MLNR.predict = function(dat, model){
-
-  dat_pred = dat[-c((length(y)))]
+MLNR.predict = function(dat_pred, model, cov_transform = "scale"){
 
   # Creating a y
-  y = model[["y"]]
-  X = model[["X"]]
   alpha_mats = model[["alpha.mats"]]
   kmat_dfs = model[["kmats"]]
   num_pwy = model[["num_pwy"]]
+  gam_mod = model[["gamma"]]
+  selected_indcs = gam_mod*seq(1,num_pwy)
+
+  f_xi = list()
 
   # applying the above function
-  pwy_dfs = pathway_creator(dat[1:(dim(dat)[1]-1),], num_pwy)
+  pwy_dfs_pred = pathway_creator(dat_pred, num_pwy, transform = "none")
+  pwy_dfs = pathway_creator(dat, num_pwy, transform = "none")
 
-  y_hat = rep(0, (dim(dat)[1]-1))
+  y_hat = rep(0, (dim(dat_pred)[1]-1))
 
   for(i in 1:num_pwy){
-    XX = (pwy_dfs[[i]]-mean(X[[i]]))/sd(X[[i]])
-    Cn = plgp::covar(XX, X[i],d=(4/(3*nrow(X[[i]])))^(0.2)*sqrt(1))
-    y_hat =+ Cn%*%alpha_mats[[i]]
+    if(i %in% selected_indcs){
+      stringr_xi = paste0("xi.",1)
+      f_xi[[i]] = model[[stringr_xi]]
+      X = as.matrix(pwy_dfs[[i]][, f_xi[[i]]])
+      XX = as.matrix(pwy_dfs_pred[[i]][, f_xi[[i]]])
+      Cn = plgp::covar(XX, X,d=(4/(3*nrow(X)))^(0.2)*sqrt(1), g = 0.001)
+      y_hat = y_hat + Cn%*%as.matrix(alpha_mats[[i]])
+    }
   }
 
   return(y_hat)
