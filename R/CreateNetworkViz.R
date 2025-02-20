@@ -10,10 +10,17 @@
 #' @param set_names A character vector containing names of the sets (pathways) to be used in the visualization.
 #'
 #' @return A ggplot object with the network visualization.
-#' @import class gtools ggplot2 GGally network sna grpreg ggnetwork
+#' @import class gtools ggplot2 GGally network ggnetwork
 #'
 #' @export
 CreateNetworkViz = function(dat, gamma, xi, num_sets, set_names = NULL){
+
+  library(class)
+  library(gtools)
+  library(ggplot2)
+  library(GGally)
+  library(network)
+  library(ggnetwork)
 
   y = dat[1:(dim(dat)[1]-1),1]
   gam_mod = gamma
