@@ -27,6 +27,9 @@
 #' @export
 GenSimDat = function(distn, num_samples, num_sets, distn_mean=0, distn_sd=1, skew=0.5){
 
+  library(mvtnorm)
+  library(ald)
+
   # Randomly generated 10 features from first path via standard normal
   sigma1 <- matrix(c(1,0.7,-0.1,0.6,0.7,1,-0.2,0.55,-0.1,-0.2,1,-0.1,0.6,0.55,-0.1,1), ncol=4)
   first_path_features = data.frame(matrix(rmvnorm(num_samples,rep(0,4),16*sigma1), nrow = num_samples))
