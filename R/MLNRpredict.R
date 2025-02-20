@@ -1,24 +1,16 @@
 #' Prediction Wrapper for MLNR
 #'
-#' This function predicts a continuous response using the MLNR model for the input dataset
+#' This function predicts a continuous response using the MLNR model for the input dataset.
 #'
-#' @param dat Data frame containing the covariates for which the response is to be predicted. Should be formatted similarly to input data to the model, with the first column dropped.
-#' @param model list output of function `MLNR'containing all the saved model parameters.
+#' @param dat_pred Data frame containing the covariates for which the response is to be predicted. Should be formatted similarly to the input data to the model, with the first column dropped.
+#' @param model List output of function `MLNR` containing all the saved model parameters.
+#' @param cov_transform Character string specifying the transformation to apply to covariates. Default is "scale".
 #'
 #' @return A vector containing predicted values of the response.
 #'
 #' @export
-#'
-#' @importFrom stats cor rexp scale
-#' @importFrom mvtnorm rmvnorm
-#' @importFrom infotheo mutinformation discretize
-#' @importFrom Matrix forceSymmetric
-#' @importFrom LaplacesDemon rdirichlet
-#' @importFrom invgamma rinvgamma
-#' @importFrom expm sqrtm
-#' @importFrom robustbase covMcd
-#' @importFrom tidyr pivot_wider
-#' @importFrom dplyr filter select mutate arrange
+#' @importFrom plgp covar
+#' @importFrom stats sd mean
 #'
 MLNR.predict = function(dat_pred, model, cov_transform = "scale"){
 
