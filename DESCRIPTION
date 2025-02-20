@@ -10,5 +10,32 @@ Encoding: UTF-8
 LazyData: true
 Imports:
     mvtnorm,
-    ald
+    ald,
+    ClusterR,
+    GGally,
+    GIGrvg,
+    LaplacesDemon,
+    MASS,
+    Matrix,
+    car,
+    class,
+    dplyr,
+    expm,
+    fMultivar,
+    ggnetwork,
+    ggplot2,
+    gtools,
+    infotheo,
+    invgamma,
+    laGP,
+    network,
+    plgp,
+    quantreg,
+    robustbase,
+    rpart,
+    sna,
+    splines,
+    tidyr,
+    tidyverse,
+    utils
 RoxygenNote: 7.3.2
