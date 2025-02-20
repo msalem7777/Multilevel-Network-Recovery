@@ -1,34 +1,3 @@
-#' MLNR
-#'
-#' Helper functions for Bayesian Multilevel Network Recovery
-#'
-#' @docType package
-#' @name MLNR
-#' @import ald
-#' @import tidyverse
-#' @import Matrix
-#' @import MASS
-#' @import car
-#' @import quantreg
-#' @import rpart
-#' @import fMultivar
-#' @import LaplacesDemon
-#' @import mvtnorm
-#' @import tidyr
-#' @import dplyr
-#' @import invgamma
-#' @import sna
-#' @import GIGrvg
-#' @import expm
-#' @import splines
-#' @import infotheo
-#' @import ClusterR
-#' @import robustbase
-#' @import plgp
-#' @import laGP
-#' @import hetGP
-NULL
-
 #' VB
 #'
 #' Variational Bayes version of the MLNR algorithm.
@@ -45,6 +14,11 @@ NULL
 #' @param ald_skew A numeric value for the skew of the asymmetric LaPlace likelihood -- default 0.5, median.
 #' @return A binary vector containing selection status for elements within sets.
 #' @export
+#' @importFrom ClusterR GMM predict_GMM
+#' @importFrom plgp covar.sep
+#' @importFrom stats dnorm rnorm runif
+#' @importFrom utils combn
+#' @importFrom base sample
 VB = function(y, X, corrmat, num_locs, lambda = 1.0, iters=50, GP = 0, Sigmat = NULL, prior_scaler = 10, plot_on=FALSE, true_dist = 0, ker_wts = NULL, rand = TRUE, lambda_cv = 2.0, lkli = "mvn"){
 
   ELBO = numeric(iters)
