@@ -10,8 +10,47 @@
 #' @param set_names A character vector containing names of the sets (pathways) to be used in the visualization.
 #'
 #' @return A ggplot object with the network visualization.
-#' @import class gtools ggplot2 GGally network ggnetwork
-#'
+#' @import ClusterR
+#' @import GGally
+#' @import GIGrvg
+#' @import LaplacesDemon
+#' @import MASS
+#' @import Matrix
+#' @import ald
+#' @import car
+#' @import class
+#' @import dplyr
+#' @import expm
+#' @import fMultivar
+#' @import ggnetwork
+#' @import ggplot2
+#' @import grpreg
+#' @import gtools
+#' @import hetGP
+#' @import infotheo
+#' @import invgamma
+#' @import laGP
+#' @import mvtnorm
+#' @import network
+#' @import plgp
+#' @import quantreg
+#' @import robustbase
+#' @import rpart
+#' @import sna
+#' @import splines
+#' @import tidyr
+#' @import tidyverse
+#' @importFrom ClusterR GMM
+#' @importFrom ClusterR predict_GMM
+#' @importFrom ald rALD
+#' @importFrom base sample
+#' @importFrom plgp covar
+#' @importFrom plgp covar.sep
+#' @importFrom stats dnorm
+#' @importFrom stats rnorm
+#' @importFrom stats runif
+#' @importFrom stats sd
+#' @importFrom utils combn
 #' @export
 CreateNetworkViz = function(dat, gamma, xi, num_sets, set_names = NULL){
 

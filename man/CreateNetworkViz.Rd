@@ -4,21 +4,14 @@
 \alias{CreateNetworkViz}
 \title{Create Network Visualizations}
 \usage{
-CreateNetworkViz(
-  dat,
-  MLN_results,
-  num_sets,
-  set_names = c("Alanine and aspartate metabolism", "ATP synthesis",
-    "c22_U133_probes(user defined)", "c23_U133_probes(user defined)",
-    "JAK-Stat Signaling Pathway", "Oxidative phosphorylation",
-    "OXPHOS_HG-U133A_probes(user defined)", "Parkinson's disease",
-    "Ubiquinone biosynthesis", "gamma-Hexachlorocyclohexane degradation")
-)
+CreateNetworkViz(dat, gamma, xi, num_sets, set_names = NULL)
 }
 \arguments{
 \item{dat}{Data frame containing the data to visualize.}
 
-\item{MLN_results}{Results from the multilevel network recovery model.}
+\item{gamma}{set Results from the multilevel network recovery model.}
+
+\item{xi}{element Results from the multilevel network recovery model.}
 
 \item{num_sets}{Number of sets (pathways) to visualize.}
 
@@ -28,6 +21,6 @@ CreateNetworkViz(
 A ggplot object with the network visualization.
 }
 \description{
-This function creates a network visualization based on pathway data and machine learning results.
+This function creates a network visualization based on set data and machine learning results.
 It generates a network of elements (genes, proteins, etc.) with edges representing interactions or relationships.
 }

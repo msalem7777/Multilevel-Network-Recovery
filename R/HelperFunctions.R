@@ -2,31 +2,48 @@
 #'
 #' Helper functions for Bayesian Multilevel Network Recovery
 #'
-#' @docType package
 #' @name MLNR
-#' @import ald
-#' @import tidyverse
-#' @import Matrix
-#' @import MASS
-#' @import car
-#' @import quantreg
-#' @import rpart
-#' @import fMultivar
-#' @import LaplacesDemon
-#' @import mvtnorm
-#' @import tidyr
-#' @import dplyr
-#' @import invgamma
-#' @import sna
-#' @import GIGrvg
-#' @import expm
-#' @import splines
-#' @import infotheo
 #' @import ClusterR
-#' @import robustbase
-#' @import plgp
-#' @import laGP
+#' @import GGally
+#' @import GIGrvg
+#' @import LaplacesDemon
+#' @import MASS
+#' @import Matrix
+#' @import ald
+#' @import car
+#' @import class
+#' @import dplyr
+#' @import expm
+#' @import fMultivar
+#' @import ggnetwork
+#' @import ggplot2
+#' @import grpreg
+#' @import gtools
 #' @import hetGP
+#' @import infotheo
+#' @import invgamma
+#' @import laGP
+#' @import mvtnorm
+#' @import network
+#' @import plgp
+#' @import quantreg
+#' @import robustbase
+#' @import rpart
+#' @import sna
+#' @import splines
+#' @import tidyr
+#' @import tidyverse
+#' @importFrom ClusterR GMM
+#' @importFrom ClusterR predict_GMM
+#' @importFrom ald rALD
+#' @importFrom base sample
+#' @importFrom plgp covar
+#' @importFrom plgp covar.sep
+#' @importFrom stats dnorm
+#' @importFrom stats rnorm
+#' @importFrom stats runif
+#' @importFrom stats sd
+#' @importFrom utils combn
 NULL
 
 
@@ -58,7 +75,6 @@ nlsep <- function(par, X, Y){
 #' @param X A dataframe or data matrix.
 #' @param Y A continuous response variable as a numeric vector.
 #' @return A numeric value for negative log-likelihood.
-#' @export
 gradnlsep <- function(par, X, Y){
   theta <- par[1:ncol(X)]
   g <- par[ncol(X)+1]
@@ -85,7 +101,6 @@ gradnlsep <- function(par, X, Y){
 #'
 #' @param x A numeric vector.
 #' @return A numeric value.
-#' @export
 log_sum_exp <- function(x) {
   max_x <- max(x)
   sum_exp <- sum(exp(x - max_x))
@@ -101,7 +116,6 @@ log_sum_exp <- function(x) {
 #' @param log_d Numeric vector..
 #' @param log_e Numeric vector.
 #' @return A numeric value.
-#' @export
 log_ratio_d_e <- function(log_d, log_e) {
   max_log <- max(log_d, log_e)
   log_denominator <- log_sum_exp(c(log_d - max_log, log_e - max_log)) + max_log
@@ -116,7 +130,6 @@ log_ratio_d_e <- function(log_d, log_e) {
 #'
 #' @param x A numeric vector containing the values to which we want to apply a sigmoid transformation.
 #' @return a transformed version of the input.
-#' @export
 sigmoid = function(x){
   return(1/(1+exp(-x)))
 }
@@ -129,7 +142,6 @@ sigmoid = function(x){
 #' @param n the number of observations.
 #' @param ncp (default=0) A logical value to specify the non-centrality parameter if desired. Seeting a non-zero `ncp` switches to an F-distribution while zero is a beta distribution
 #' @return a numeric value for density.
-#' @export
 dcorr = function(c2, n, ncp=0){
   if(ncp==0){
     dens = dbeta(c2, 0.5, (n-2)/2)
@@ -147,7 +159,6 @@ dcorr = function(c2, n, ncp=0){
 #' @param df1 A dataframe containing the first set
 #' @param df2 A dataframe containing the second set
 #' @return A scalar value for the average of correlations between the input dataframes
-#' @export
 compute_correlation <- function(df1, df2) {
   cor_matrix <- cor(df1, df2)
   avg_correlation <- mean(cor_matrix)
@@ -155,24 +166,11 @@ compute_correlation <- function(df1, df2) {
 }
 
 
-
-#' GaussianKernelize
-#'
-#' Function to return the gaussian kernel values for an input dataframe
-#'
-#' @param path_features A dataframe containing the elements from a given set
-#' @param curr_xi A vector of binary variables indicating the inclusion status of each element in the set
-#' @param sigmasq A scalar value for the lengthscale parameter of the Gaussian kernel
-#' @return A gram matrix resulting from the Gaussian kernel
-#' @export
-
 #' min_max_normalization_df
 #'
 #' Function to apply min-max normalization to all columns of a dataframe
 #'
 #' @param df A dataframe containing numeric values
-#' @return A min-max normalized dataframe
-#' @export
 min_max_normalization_df <- function(df) {
   # Apply min-max normalization to each column
   normalized_df <- as.data.frame(lapply(df, function(x) {
@@ -191,7 +189,7 @@ min_max_normalization_df <- function(df) {
 #'
 #' @param x A matrix containing sampled numeric values
 #' @return A numeric vector of last sampled values
-#' @export
+
 prv.alpha = function(x, i){
 
   if(is.matrix(x)==TRUE){
@@ -237,7 +235,7 @@ prv.alpha = function(x, i){
 #' @param num_pw A scalar numeric for the number of sets in the data
 #' @param transform (default="scale") A string value indicating the desired tranformation on the covariates. "sclae" for a scale transformation. "minmax" for min-max normalization
 #' @return A list of set dataframes
-#' @export
+
 pathway_creator = function(dat, num_pw, transform = "scale"){
   group_list = c(unique(unlist(dat[(dim(dat)[1]),2:(dim(dat)[2])])))
   listr = list()
@@ -263,7 +261,7 @@ pathway_creator = function(dat, num_pw, transform = "scale"){
 #' @param df_list A list of dataframes of sets
 #' @param num_pw A scalar numeric for the number of sets in the data
 #' @return A list of set dataframes
-#' @export
+
 corr_mat_creator = function(df_list, num_pw){
   listr = list()
   for(i in 1:num_pw){
@@ -283,7 +281,7 @@ corr_mat_creator = function(df_list, num_pw){
 #' @param df_list A list of dataframes of sets
 #' @param num_pw A scalar numeric for the number of sets in the data
 #' @return A list of set dataframes
-#' @export
+
 kmat_creator = function(df_list, num_pw){
   listr = list()
   for(i in 1:num_pw){
@@ -301,7 +299,7 @@ kmat_creator = function(df_list, num_pw){
 #' @param kmat_dfs A list of dataframes of Gaussian kernel matrices for sets
 #' @param num_pw A scalar numeric for the number of sets in the data
 #' @return A list of lists, each containing the diagonal entries of a kernel matrix
-#' @export
+
 bigB_creator = function(kmat_dfs, num_pw){
   listr = list()
   for(i in 1:num_pw){
@@ -321,7 +319,7 @@ bigB_creator = function(kmat_dfs, num_pw){
 #' @param N A scalar numeric for the number of iterations in the Gibbs sampler
 #' @param distn A string for the choice of distribution "mvn" for multivariate normal (default). "ald" for asymmetric LaPlace.
 #' @return A list of matrices, each containing the initial kernel weights
-#' @export
+
 alpha_creator <- function(y, kmat_dfs, alpha_prior_V, N, dist = "mvn",
                           sigmasq = NULL, ald_tau = NULL,
                           ald_theta = NULL, ald_z_vec = NULL,
@@ -364,7 +362,7 @@ alpha_creator <- function(y, kmat_dfs, alpha_prior_V, N, dist = "mvn",
 #' @param N A scalar numeric for the number of iterations in the Gibbs sampler
 #' @param init A numeric value for the initial probability of inclusion of sets. Default is 1
 #' @return A list of lists containing the initial inclusion probability for each set
-#' @export
+
 prob_notnull_creator = function(pwy_dfs, N, init = 1){
   num_pw = length(pwy_dfs)
   listr = list()
@@ -385,7 +383,7 @@ prob_notnull_creator = function(pwy_dfs, N, init = 1){
 #' @param pwy_dfs A list of dataframes of sets
 #' @param N A scalar numeric for the number of iterations in the Gibbs sampler
 #' @return A list of matrices containing the initial inclusion variables for each set's elements
-#' @export
+
 curr_xi_creator = function(pwy_dfs, N){
   listr = list()
   num_pw = length(pwy_dfs)
@@ -410,7 +408,7 @@ curr_xi_creator = function(pwy_dfs, N){
 #' @param xmin minimum of training covariates
 #' @param xmax maximum of training covariates
 #' @return A list of set dataframes
-#' @export
+
 pathway_creator_pred = function(dat_pred, dat, num_pw, transform){
   group_list = c(unique(unlist(dat[(dim(dat)[1]),2:(dim(dat)[2])])))
   listr = list()

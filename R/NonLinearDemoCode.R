@@ -17,6 +17,47 @@
 #' @param rel_method Method for relevance (default "gp").
 #' @param w_set Weighting scheme (default "avg.corr").
 #' @return A list containing model results, intermediate outputs, and visualizations.
+#' @import ClusterR
+#' @import GGally
+#' @import GIGrvg
+#' @import LaplacesDemon
+#' @import MASS
+#' @import Matrix
+#' @import ald
+#' @import car
+#' @import class
+#' @import dplyr
+#' @import expm
+#' @import fMultivar
+#' @import ggnetwork
+#' @import ggplot2
+#' @import grpreg
+#' @import gtools
+#' @import hetGP
+#' @import infotheo
+#' @import invgamma
+#' @import laGP
+#' @import mvtnorm
+#' @import network
+#' @import plgp
+#' @import quantreg
+#' @import robustbase
+#' @import rpart
+#' @import sna
+#' @import splines
+#' @import tidyr
+#' @import tidyverse
+#' @importFrom ClusterR GMM
+#' @importFrom ClusterR predict_GMM
+#' @importFrom ald rALD
+#' @importFrom base sample
+#' @importFrom plgp covar
+#' @importFrom plgp covar.sep
+#' @importFrom stats dnorm
+#' @importFrom stats rnorm
+#' @importFrom stats runif
+#' @importFrom stats sd
+#' @importFrom utils combn
 #' @export
 demo_code_NonLinear <- function(num_sets = 5, n_samples = 100, distn_mean = 0, distn_sd = 1, skew = 0.5,
                       sigmasq_y = 1, a = 1, b = 1, penalty = "function", dist = "mvn", mthd = "VB",

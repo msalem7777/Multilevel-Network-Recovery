@@ -25,34 +25,49 @@
 #' @param Restarts Number of restarts to help the Ising model escape local modes.
 #' @param rel_method Relevance method, either "gp" (uses actual observations), "mi" (mutual information), or "cor" (correlation squared).
 #' @param w_set Weight setting, such as "avg.cor" for using average correlation.
-#'
-#' @import ald
-#' @import tidyverse
-#' @import Matrix
-#' @import MASS
-#' @import car
-#' @import quantreg
-#' @import rpart
-#' @import fMultivar
-#' @import LaplacesDemon
-#' @import mvtnorm
-#' @import tidyr
-#' @import dplyr
-#' @import invgamma
-#' @import sna
-#' @import GIGrvg
-#' @import expm
-#' @import splines
-#' @import infotheo
-#' @import ClusterR
-#' @import robustbase
-#' @import plgp
-#' @import laGP
-#' @import hetGP
-#'
 #' @return MLNR model results.
+#' @import ClusterR
+#' @import GGally
+#' @import GIGrvg
+#' @import LaplacesDemon
+#' @import MASS
+#' @import Matrix
+#' @import ald
+#' @import car
+#' @import class
+#' @import dplyr
+#' @import expm
+#' @import fMultivar
+#' @import ggnetwork
+#' @import ggplot2
+#' @import grpreg
+#' @import gtools
+#' @import hetGP
+#' @import infotheo
+#' @import invgamma
+#' @import laGP
+#' @import mvtnorm
+#' @import network
+#' @import plgp
+#' @import quantreg
+#' @import robustbase
+#' @import rpart
+#' @import sna
+#' @import splines
+#' @import tidyr
+#' @import tidyverse
+#' @importFrom ClusterR GMM
+#' @importFrom ClusterR predict_GMM
+#' @importFrom ald rALD
+#' @importFrom base sample
+#' @importFrom plgp covar
+#' @importFrom plgp covar.sep
+#' @importFrom stats dnorm
+#' @importFrom stats rnorm
+#' @importFrom stats runif
+#' @importFrom stats sd
+#' @importFrom utils combn
 #' @export
-#'
 MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1_connected = 1, sigmasq_y = 1,
                 a = 1, b = 1, ald_p = 0.5, n0=1, s0=1, pi_0 = 0.5, a_al=0.5, b_al=0.5, sigmasq_alpha=1,
                 penalty = "weights", dist = "mvn", mthd = "VB", Restarts = 1, rel_method = "mi", w_set="avg.corr"){
