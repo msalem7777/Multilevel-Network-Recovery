@@ -17,13 +17,8 @@
 #' @param rel_method Method for relevance (default "gp").
 #' @param w_set Weighting scheme (default "avg.corr").
 #' @return A list containing model results, intermediate outputs, and visualizations.
-#' @import ClusterR
 #' @import GGally
 #' @import GIGrvg
-#' @import LaplacesDemon
-#' @import MASS
-#' @import Matrix
-#' @import ald
 #' @import car
 #' @import class
 #' @import dplyr
@@ -39,7 +34,6 @@
 #' @import laGP
 #' @import mvtnorm
 #' @import network
-#' @import plgp
 #' @import quantreg
 #' @import robustbase
 #' @import rpart
@@ -47,9 +41,10 @@
 #' @import splines
 #' @import tidyr
 #' @import tidyverse
+#' @importFrom Matrix forceSymmetric
 #' @importFrom ClusterR GMM
 #' @importFrom ClusterR predict_GMM
-#' @importFrom ald rALD
+#' @importFrom ald rALD dALD
 #' @importFrom base sample
 #' @importFrom plgp covar
 #' @importFrom plgp covar.sep

@@ -22,13 +22,8 @@
 #' # Generate data with asymmetric Laplace noise
 #' data <- GenSimDat("ald", num_samples = 100, num_sets = 3, skew = 0.7)
 #'
-#' @import ClusterR
 #' @import GGally
 #' @import GIGrvg
-#' @import LaplacesDemon
-#' @import MASS
-#' @import Matrix
-#' @import ald
 #' @import car
 #' @import class
 #' @import dplyr
@@ -44,7 +39,6 @@
 #' @import laGP
 #' @import mvtnorm
 #' @import network
-#' @import plgp
 #' @import quantreg
 #' @import robustbase
 #' @import rpart
@@ -52,9 +46,10 @@
 #' @import splines
 #' @import tidyr
 #' @import tidyverse
+#' @importFrom Matrix forceSymmetric
 #' @importFrom ClusterR GMM
 #' @importFrom ClusterR predict_GMM
-#' @importFrom ald rALD
+#' @importFrom ald rALD dALD
 #' @importFrom base sample
 #' @importFrom plgp covar
 #' @importFrom plgp covar.sep

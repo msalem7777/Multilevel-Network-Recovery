@@ -13,13 +13,8 @@
 #' @param lkli A string. 'mvn' (default) uses a normal likelihood. 'ald' uses an asymmetric Laplace likelihood'
 #' @param ald_skew A numeric value for the skew of the asymmetric LaPlace likelihood -- default 0.5, median.
 #' @return A binary vector containing selection status for elements within sets.
-#' @import ClusterR
 #' @import GGally
 #' @import GIGrvg
-#' @import LaplacesDemon
-#' @import MASS
-#' @import Matrix
-#' @import ald
 #' @import car
 #' @import class
 #' @import dplyr
@@ -35,7 +30,6 @@
 #' @import laGP
 #' @import mvtnorm
 #' @import network
-#' @import plgp
 #' @import quantreg
 #' @import robustbase
 #' @import rpart
@@ -43,9 +37,10 @@
 #' @import splines
 #' @import tidyr
 #' @import tidyverse
+#' @importFrom Matrix forceSymmetric
 #' @importFrom ClusterR GMM
 #' @importFrom ClusterR predict_GMM
-#' @importFrom ald rALD
+#' @importFrom ald rALD dALD
 #' @importFrom base sample
 #' @importFrom plgp covar
 #' @importFrom plgp covar.sep

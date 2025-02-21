@@ -10,13 +10,8 @@
 #' @param set_names A character vector containing names of the sets (pathways) to be used in the visualization.
 #'
 #' @return A ggplot object with the network visualization.
-#' @import ClusterR
 #' @import GGally
 #' @import GIGrvg
-#' @import LaplacesDemon
-#' @import MASS
-#' @import Matrix
-#' @import ald
 #' @import car
 #' @import class
 #' @import dplyr
@@ -32,7 +27,6 @@
 #' @import laGP
 #' @import mvtnorm
 #' @import network
-#' @import plgp
 #' @import quantreg
 #' @import robustbase
 #' @import rpart
@@ -40,9 +34,10 @@
 #' @import splines
 #' @import tidyr
 #' @import tidyverse
+#' @importFrom Matrix forceSymmetric
 #' @importFrom ClusterR GMM
 #' @importFrom ClusterR predict_GMM
-#' @importFrom ald rALD
+#' @importFrom ald rALD dALD
 #' @importFrom base sample
 #' @importFrom plgp covar
 #' @importFrom plgp covar.sep
