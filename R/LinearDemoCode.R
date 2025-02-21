@@ -20,39 +20,28 @@
 #'
 #' @import GGally
 #' @import GIGrvg
-#' @import car
 #' @import class
 #' @import dplyr
 #' @import expm
 #' @import fMultivar
 #' @import ggnetwork
 #' @import ggplot2
-#' @import grpreg
 #' @import gtools
-#' @import hetGP
 #' @import infotheo
 #' @import invgamma
 #' @import laGP
 #' @import mvtnorm
 #' @import network
-#' @import quantreg
-#' @import robustbase
 #' @import rpart
 #' @import sna
-#' @import splines
 #' @import tidyr
 #' @import tidyverse
 #' @importFrom Matrix forceSymmetric
 #' @importFrom ClusterR GMM
 #' @importFrom ClusterR predict_GMM
 #' @importFrom ald rALD dALD
-#' @importFrom base sample
 #' @importFrom plgp covar
 #' @importFrom plgp covar.sep
-#' @importFrom stats dnorm
-#' @importFrom stats rnorm
-#' @importFrom stats runif
-#' @importFrom stats sd
 #' @importFrom utils combn
 #' @export
 demo_code_Linear <- function(num_sets = 5, n_samples = 100, distn_mean = 0, distn_sd = 1, skew = 0.5,

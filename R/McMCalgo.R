@@ -15,39 +15,28 @@
 #' @return A binary vector containing selection status for elements within sets.
 #' @import GGally
 #' @import GIGrvg
-#' @import car
 #' @import class
 #' @import dplyr
 #' @import expm
 #' @import fMultivar
 #' @import ggnetwork
 #' @import ggplot2
-#' @import grpreg
 #' @import gtools
-#' @import hetGP
 #' @import infotheo
 #' @import invgamma
 #' @import laGP
 #' @import mvtnorm
 #' @import network
-#' @import quantreg
-#' @import robustbase
 #' @import rpart
 #' @import sna
-#' @import splines
 #' @import tidyr
 #' @import tidyverse
 #' @importFrom Matrix forceSymmetric
 #' @importFrom ClusterR GMM
 #' @importFrom ClusterR predict_GMM
 #' @importFrom ald rALD dALD
-#' @importFrom base sample
 #' @importFrom plgp covar
 #' @importFrom plgp covar.sep
-#' @importFrom stats dnorm
-#' @importFrom stats rnorm
-#' @importFrom stats runif
-#' @importFrom stats sd
 #' @importFrom utils combn
 #' @export
 BIGM = function(y, X, corrmat, num_locs, prior_scaler = 10, N=1000, k_on = 0, rand = FALSE, lkli = "mvn", ald_skew=0.5){

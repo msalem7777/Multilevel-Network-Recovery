@@ -7,14 +7,13 @@ Maintainer: <msalem@vt.edu>
 Description: Bayesian Multilevel Network Recovery
 License: MIT + file LICENSE
 Encoding: UTF-8
-LazyData: true
+LazyData: false
 Imports:
     mvtnorm,
     ald,
     ClusterR,
     GGally,
     GIGrvg,
-    LaplacesDemon,
     MASS,
     Matrix,
     car,
@@ -30,12 +29,8 @@ Imports:
     laGP,
     network,
     plgp,
-    quantreg,
-    robustbase,
     rpart,
     sna,
-    splines,
     tidyr,
-    tidyverse,
-    utils
+    tidyverse
 RoxygenNote: 7.3.2

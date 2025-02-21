@@ -12,49 +12,31 @@
 #' @return A ggplot object with the network visualization.
 #' @import GGally
 #' @import GIGrvg
-#' @import car
 #' @import class
 #' @import dplyr
 #' @import expm
 #' @import fMultivar
 #' @import ggnetwork
 #' @import ggplot2
-#' @import grpreg
 #' @import gtools
-#' @import hetGP
 #' @import infotheo
 #' @import invgamma
 #' @import laGP
 #' @import mvtnorm
 #' @import network
-#' @import quantreg
-#' @import robustbase
 #' @import rpart
 #' @import sna
-#' @import splines
 #' @import tidyr
 #' @import tidyverse
 #' @importFrom Matrix forceSymmetric
 #' @importFrom ClusterR GMM
 #' @importFrom ClusterR predict_GMM
 #' @importFrom ald rALD dALD
-#' @importFrom base sample
 #' @importFrom plgp covar
 #' @importFrom plgp covar.sep
-#' @importFrom stats dnorm
-#' @importFrom stats rnorm
-#' @importFrom stats runif
-#' @importFrom stats sd
 #' @importFrom utils combn
 #' @export
 CreateNetworkViz = function(dat, gamma, xi, num_sets, set_names = NULL){
-
-  library(class)
-  library(gtools)
-  library(ggplot2)
-  library(GGally)
-  library(network)
-  library(ggnetwork)
 
   y = dat[1:(dim(dat)[1]-1),1]
   gam_mod = gamma

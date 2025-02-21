@@ -15,39 +15,28 @@
 #' @return A binary vector containing selection status for elements within sets.
 #' @import GGally
 #' @import GIGrvg
-#' @import car
 #' @import class
 #' @import dplyr
 #' @import expm
 #' @import fMultivar
 #' @import ggnetwork
 #' @import ggplot2
-#' @import grpreg
 #' @import gtools
-#' @import hetGP
 #' @import infotheo
 #' @import invgamma
 #' @import laGP
 #' @import mvtnorm
 #' @import network
-#' @import quantreg
-#' @import robustbase
 #' @import rpart
 #' @import sna
-#' @import splines
 #' @import tidyr
 #' @import tidyverse
 #' @importFrom Matrix forceSymmetric
 #' @importFrom ClusterR GMM
 #' @importFrom ClusterR predict_GMM
 #' @importFrom ald rALD dALD
-#' @importFrom base sample
 #' @importFrom plgp covar
 #' @importFrom plgp covar.sep
-#' @importFrom stats dnorm
-#' @importFrom stats rnorm
-#' @importFrom stats runif
-#' @importFrom stats sd
 #' @importFrom utils combn
 #' @export
 VB = function(y, X, corrmat, num_locs, lambda = 1.0, iters=50, GP = 0, Sigmat = NULL, prior_scaler = 10, plot_on=FALSE, true_dist = 0, ker_wts = NULL, rand = TRUE, lambda_cv = 2.0, lkli = "mvn"){

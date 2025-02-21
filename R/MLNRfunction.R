@@ -28,39 +28,28 @@
 #' @return MLNR model results.
 #' @import GGally
 #' @import GIGrvg
-#' @import car
 #' @import class
 #' @import dplyr
 #' @import expm
 #' @import fMultivar
 #' @import ggnetwork
 #' @import ggplot2
-#' @import grpreg
 #' @import gtools
-#' @import hetGP
 #' @import infotheo
 #' @import invgamma
 #' @import laGP
 #' @import mvtnorm
 #' @import network
-#' @import quantreg
-#' @import robustbase
 #' @import rpart
 #' @import sna
-#' @import splines
 #' @import tidyr
 #' @import tidyverse
 #' @importFrom Matrix forceSymmetric
 #' @importFrom ClusterR GMM
 #' @importFrom ClusterR predict_GMM
 #' @importFrom ald rALD dALD
-#' @importFrom base sample
 #' @importFrom plgp covar
 #' @importFrom plgp covar.sep
-#' @importFrom stats dnorm
-#' @importFrom stats rnorm
-#' @importFrom stats runif
-#' @importFrom stats sd
 #' @importFrom utils combn
 #' @export
 MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1_connected = 1, sigmasq_y = 1,
