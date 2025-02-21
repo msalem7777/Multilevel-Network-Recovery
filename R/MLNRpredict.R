@@ -38,6 +38,7 @@ MLNR.predict = function(dat_pred, model, cov_transform = "scale"){
 
   # Creating a y
   y = model[["y"]]
+  dat = model[["data"]]
   alpha_mats = model[["alpha.mats"]]
   kmat_dfs = model[["kmats"]]
   num_pwy = model[["num_sets"]]
