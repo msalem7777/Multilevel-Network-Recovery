@@ -94,13 +94,28 @@ CreateNetworkViz = function(dat, gamma, xi, num_sets, set_names = NULL){
   viz_net_obj_mod$xend = viz_net_obj_mod$xend+num_sets*(cos((as.numeric(viz_net_obj_mod$set)*(2*pi/num_sets))))/2.25
   viz_net_obj_mod$yend = viz_net_obj_mod$yend+num_sets*(sin((as.numeric(viz_net_obj_mod$set)*(2*pi/num_sets))))/2.25
 
-
   # looking up names by target coordinates
   viz_net_obj_mod$target.names = knn(train = viz_net_obj_mod[,c('x','y')], test = viz_net_obj_mod[,c('xend','yend')], cl = viz_net_obj_mod[,c('vertex.names')], k=1)
 
   elim_list = list()
 
   viz_net_obj_mod_rest = viz_net_obj_mod[!row(viz_net_obj_mod)[,1] %in% elim_list,]
+
+  radius_df = viz_net_obj_mod_rest %>%
+    group_by(set) %>%
+    mutate(
+      x_center = mean(x, na.rm = TRUE),
+      y_center = mean(y, na.rm = TRUE),
+      distance = sqrt((x - x_center)^2 + (y - y_center)^2)
+    ) %>%
+    summarise(
+      count = n(),
+      x = mean(x, na.rm = TRUE),
+      xend = mean(x, na.rm = TRUE),
+      y = mean(y, na.rm = TRUE),
+      yend = mean(y, na.rm = TRUE),
+      radius = max(distance, na.rm = TRUE)  # Max distance from centroid
+    )
 
   centroid_df = viz_net_obj_mod_rest %>%
     group_by(set) %>%
@@ -109,9 +124,11 @@ CreateNetworkViz = function(dat, gamma, xi, num_sets, set_names = NULL){
       x = (max(x,na.rm=TRUE)-min(x,na.rm=TRUE))/2+min(x,na.rm=TRUE),
       xend = (max(x,na.rm=TRUE)-min(x,na.rm=TRUE))/2+min(x,na.rm=TRUE),
       y = (max(y,na.rm=TRUE)-min(y,na.rm=TRUE))/2+min(y,na.rm=TRUE),
-      yend = (max(y,na.rm=TRUE)-min(y,na.rm=TRUE))/2+min(y,na.rm=TRUE)
+      yend = (max(y,na.rm=TRUE)-min(y,na.rm=TRUE))/2+min(y,na.rm=TRUE),
+      radius = max(sqrt((x - mean(x, na.rm=TRUE))^2 + (y - mean(y, na.rm=TRUE))^2)) # Max distance from center
     )
 
+  centroid_df$radius = radius_df$radius
   centroid_df = centroid_df[order(as.numeric(centroid_df$set)),]
   centroid_df$paired = gam_mod
 
@@ -131,7 +148,7 @@ CreateNetworkViz = function(dat, gamma, xi, num_sets, set_names = NULL){
     ggplot(viz_net_obj_mod_rest2,
            aes(x, y, xend = xend,yend = yend)) +
       geom_point() +
-      geom_point(data = centroid_df,  shape = 21, col= "black", size=((5)+0.7)^2, stroke = 2)+
+      geom_point(data = centroid_df,  shape = 21, col= "black", size=centroid_df$radius * 75, stroke = 2)+
       geom_line(data = centroid_df_lines, aes(group = paired)) +
       geom_edges(aes(color = set), alpha = 0.1) +
       geom_nodes(aes(color = set), size = 0.75) +
@@ -151,15 +168,27 @@ CreateNetworkViz = function(dat, gamma, xi, num_sets, set_names = NULL){
     group_list_names = set_names
     order_vec = as.numeric(viz_net_obj_mod_rest$set)
     group_list_names = rep(group_list_names, times = as.numeric(table(order_vec)))
-    viz_net_obj_mod_rest2 = viz_net_obj_mod_rest
-    viz_net_obj_mod_rest2$set = group_list_names
+    # viz_net_obj_mod_rest2 = viz_net_obj_mod_rest
+    # viz_net_obj_mod_rest2$set = group_list_names
+    viz_net_obj_mod_rest2 <- merge(
+      viz_net_obj_mod_rest,
+      node_mat[, c("element", "set")],
+      by.x = "vertex.names",
+      by.y = "element",
+      all.x = TRUE
+    )
+
+    # If `set.y` is the correct one (from node_mat), drop `set.x`
+    viz_net_obj_mod_rest2$set <- viz_net_obj_mod_rest2$set.y
+    viz_net_obj_mod_rest2$set.x <- NULL
+    viz_net_obj_mod_rest2$set.y <- NULL
 
     ggplot(viz_net_obj_mod_rest2,
            aes(x, y, xend = xend,yend = yend)) +
       geom_point() +
-      geom_point(data = centroid_df,  shape = 21, col= "black", size=((5)+0.7)^2, stroke = 2)+
-      geom_edges(aes(color = set), alpha = 0.1) +
-      geom_nodes(aes(color = set), size = 0.75) +
+      geom_point(data = centroid_df,  shape = 21, col= "black", size=centroid_df$radius * 75, stroke = 2)+
+      geom_nodes(aes(color = as.factor(set)), size = 0.75) +
+      geom_edges(aes(color = as.factor(set)), alpha = 0.1) +
 
       scale_color_brewer("set", palette = "Spectral")+
       xlim(-num_sets*0.6, num_sets*0.6)+
@@ -171,7 +200,5 @@ CreateNetworkViz = function(dat, gamma, xi, num_sets, set_names = NULL){
             axis.ticks.y = element_blank(),
             axis.text.y = element_blank())
   }
-
-
 
 }
