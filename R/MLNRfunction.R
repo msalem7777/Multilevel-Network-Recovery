@@ -367,8 +367,8 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
     }
 
     # initialize parallelization clusters
-    cl <- makeCluster(num_cores)
-    registerDoParallel(cl)
+    cl <- parallel::makeCluster(num_cores)
+    doParallel::registerDoParallel(cl)
 
     # Gene Selection
     if(mthd == 'MCMC'){
@@ -489,7 +489,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
     }
 
     # Terminate parallelization clusters
-    stopCluster(cl)
+    parallel::stopCluster(cl)
 
     prcent = prcent + 1/(2*N_norm)*100
     cat(sprintf("\rProgress: %.1f%%", prcent))
@@ -506,8 +506,8 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   f_xi = list()
 
   # initialize parallelization clusters
-  cl <- makeCluster(num_cores)
-  registerDoParallel(cl)
+  cl <- parallel::makeCluster(num_cores)
+  doParallel::registerDoParallel(cl)
 
   # Gene Selection
   if(mthd == 'MCMC'){
@@ -601,7 +601,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   }
 
   # Terminate parallelization clusters
-  stopCluster(cl)
+  parallel::stopCluster(cl)
 
   mln_indic = 1
   MLN_results = currxi_results = numeric(ncol(dat)-1)
