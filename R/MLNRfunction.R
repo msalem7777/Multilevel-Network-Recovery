@@ -383,7 +383,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
           mu_list = list()
 
           for(r in 1:Restarts){
-            outc = BIGM(y = y_tilde[[j]], pwy_dfs[[j]], corrmat = corr_mats[[j]], num_locs = ncol(pwy_dfs[[j]]), phi = (1/sigmasq[i,]), k_on = 1, N=300, rand = TRUE, prior_scaler = 1.0, lkli=dist)
+            outc = BIGM(y = y_tilde[[j]], pwy_dfs[[j]], corrmat = corr_mats[[j]], num_locs = ncol(pwy_dfs[[j]]), k_on = 1, N=300, rand = TRUE, prior_scaler = 1.0, lkli=dist)
             elbo_vec = c(elbo_vec, outc$elbo)
             mu_list = c(mu_list, list(outc$mu_r))
           }
@@ -472,7 +472,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
         mu_list = list()
 
         for(r in 1:Restarts){
-          outc = BIGM(y = y_tilde[[j]], pwy_dfs[[j]], corrmat = corr_mats[[j]], num_locs = ncol(pwy_dfs[[j]]), phi = (1/sigmasq[i,]), k_on = 1, N=300, rand = TRUE, prior_scaler = 1.0, lkli=dist)
+          outc = BIGM(y = y_tilde[[j]], pwy_dfs[[j]], corrmat = corr_mats[[j]], num_locs = ncol(pwy_dfs[[j]]), k_on = 1, N=300, rand = TRUE, prior_scaler = 1.0, lkli=dist)
           elbo_vec = c(elbo_vec, outc$elbo)
           mu_list = c(mu_list, list(outc$mu_r))
         }
