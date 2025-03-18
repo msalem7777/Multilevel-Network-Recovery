@@ -34,7 +34,7 @@
 #' @importFrom plgp covar.sep
 #' @importFrom utils combn
 #' @export
-MLNR.predict = function(dat_pred, model, cov_transform = "none"){
+MLNR.predict = function(dat_pred, model, cov_transform = "none", scale_up=FALSE){
 
   # Creating a y
   y = model[["y"]]
@@ -65,8 +65,9 @@ MLNR.predict = function(dat_pred, model, cov_transform = "none"){
     cntr = cntr + 1
   }
 
-  # y_hat = y_hat*sd(y) + mean(y)
-
+  if(scale_up == TRUE){
+    y_hat = y_hat*sd(y) + mean(y)
+  }
   return(y_hat)
 
 }
