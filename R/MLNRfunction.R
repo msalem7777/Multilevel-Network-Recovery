@@ -42,6 +42,7 @@
 #' @import laGP
 #' @import mvtnorm
 #' @import network
+#' @import parallel
 #' @import rpart
 #' @import sna
 #' @import tidyr

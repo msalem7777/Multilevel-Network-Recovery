@@ -3,7 +3,7 @@
   required_packages <- c(
     "GGally", "GIGrvg", "car", "class", "doParallel", "dplyr", "expm", "fMultivar", "foreach",
     "ggnetwork", "ggplot2", "gtools", "infotheo",
-    "invgamma", "laGP", "mvtnorm", "network", "quantreg", "robustbase",
+    "invgamma", "laGP", "mvtnorm", "network", "parallel", "plgp", "quantreg", "robustbase",
     "rpart", "sna", "splines", "tidyr", "tidyverse"
   )
 
