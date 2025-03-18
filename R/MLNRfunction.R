@@ -67,7 +67,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   out_list = list()
 
   # Num cores for parallelization
-  num_cores <- min(num_pwy,(detectCores() - 1))  # Reserve one core for system processes
+  num_cores <- min(num_pwy,(parallel::detectCores() - 1))  # Reserve one core for system processes
 
   # Placeholder matrices
   MLN_G_mat = as.data.frame(matrix(0, nrow = num_pwy, ncol=2))
