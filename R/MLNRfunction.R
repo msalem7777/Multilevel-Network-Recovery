@@ -29,9 +29,11 @@
 #' @import GGally
 #' @import GIGrvg
 #' @import class
+#' @import doParallel
 #' @import dplyr
 #' @import expm
 #' @import fMultivar
+#' @import foreach
 #' @import ggnetwork
 #' @import ggplot2
 #' @import gtools
@@ -61,6 +63,9 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   eps = sqrt(.Machine$double.eps)
 
   out_list = list()
+
+  # Num cores for parallelization
+  num_cores <- detectCores() - 1  # Reserve one core for system processes
 
   # Placeholder matrices
   MLN_G_mat = as.data.frame(matrix(0, nrow = num_pwy, ncol=2))
@@ -145,7 +150,6 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   } else if(dist == "ald"){
     alpha_mats = alpha_creator(y, kmat_dfs, alpha_prior_V, N_norm, dist = dist, sigmasq = sigmasq, ald_tau=ald_tau, ald_theta=ald_theta, ald_z_vec=ald_z_vec, ald_z_mat=ald_z_mat, ald_bigB_inv=ald_bigB_inv)
   }
-
 
   # Setting up a placeholder for path selection variable (10 pathways)
   gamma = matrix(NA, nrow = N_norm, ncol = num_pwy)
@@ -360,38 +364,60 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
       }
     }
 
+    # initialize parallelization clusters
+    cl <- makeCluster(num_cores)
+    registerDoParallel(cl)
+
     # Gene Selection
     if(mthd == 'MCMC'){
 
       if(i%%skipper==0){
 
-        for(j in 1:num_pwy){
-
-          if(rel_method == "gp"){
-            Glstr = as.list(matrix(prv.alpha(gamma,i),nrow = length(gamma[i-1,]), ncol=1))
-            KDFG = Map('*',kmat_dfs,Glstr)
-            AMK = Map('*',alpha_mats_k,Glstr)
-            y_tilde[[j]] = y - mean(y) - Reduce("+",(Map('%*%',KDFG,AMK))) + KDFG[[j]]%*%AMK[[j]]
+        results <- foreach(j = 1:num_pwy, .packages = c("plgp")) %dopar% {
+          if (rel_method == "gp") {
+            Glstr <- as.list(matrix(prv.alpha(gamma, i), nrow = length(gamma[i-1,]), ncol = 1))
+            KDFG <- Map('*', kmat_dfs, Glstr)
+            AMK <- Map('*', alpha_mats_k, Glstr)
+            y_tilde_j <- y - mean(y) - Reduce("+", Map('%*%', KDFG, AMK)) + KDFG[[j]] %*% AMK[[j]]
+          } else {
+            y_tilde_j <- y  # Default assignment if rel_method is not "gp"
           }
 
-          p_gam = mean(gamma[(max((i-skipper),1)):i,j], na.rm=TRUE)
+          p_gam <- mean(gamma[(max((i - skipper), 1)):i, j], na.rm = TRUE)
 
-          elbo_vec = c()
-          mu_list = list()
+          elbo_vec <- numeric(Restarts)
+          mu_list <- vector("list", Restarts)
 
-          for(r in 1:Restarts){
-            outc = BIGM(y = y_tilde[[j]], pwy_dfs[[j]], corrmat = corr_mats[[j]], num_locs = ncol(pwy_dfs[[j]]), k_on = 1, N=300, rand = TRUE, prior_scaler = 1.0, lkli=dist)
-            elbo_vec = c(elbo_vec, outc$elbo)
-            mu_list = c(mu_list, list(outc$mu_r))
+          for (r in 1:Restarts) {
+            outc <- BIGM(
+              y = y_tilde_j,
+              X = pwy_dfs[[j]],
+              corrmat = corr_mats[[j]],
+              num_locs = ncol(pwy_dfs[[j]]),
+              k_on = 1,
+              N = 300,
+              rand = TRUE,
+              prior_scaler = 1.0,
+              lkli = dist
+            )
+            elbo_vec[r] <- outc$elbo
+            mu_list[[r]] <- outc$mu_r
           }
 
           elbo_vec[is.nan(elbo_vec)] <- 0
-          curr_xi_dfs[[j]][i,] = ((p_gam*mu_list[[which.max(elbo_vec)]]+(1-p_gam)*-1)>0)*1 #new v2
+          curr_xi_dfs_j <- ((p_gam * mu_list[[which.max(elbo_vec)]] + (1 - p_gam) * -1) > 0) * 1
 
-          # Rebuilding Pathways using only selected genes
-          idx = replace(curr_xi_dfs[[j]][i,], is.na(curr_xi_dfs[[j]][i,]), 0)
-          if(sum(idx)==0){idx=sample(1:ncol(pwy_dfs[[j]]),sample(1:ncol(pwy_dfs[[j]]),1))}
-          kmat_dfs[[j]] = plgp::covar(as.matrix(pwy_dfs[[j]][,idx]), d=(4/(3*nrow(pwy_dfs[[j]])))^(0.2)*sqrt(1), g = 0.00001)
+          idx <- replace(curr_xi_dfs_j, is.na(curr_xi_dfs_j), 0)
+          if (sum(idx) == 0) {
+            idx <- sample(1:ncol(pwy_dfs[[j]]), sample(1:ncol(pwy_dfs[[j]]), 1))
+          }
+          kmat_dfs_j <- plgp::covar(as.matrix(pwy_dfs[[j]][, idx]), d = (4 / (3 * nrow(pwy_dfs[[j]])))^(0.2) * sqrt(1), g = 0.00001)
+
+          list(curr_xi_dfs_j = curr_xi_dfs_j, kmat_dfs_j = kmat_dfs_j)
+        }
+        for (j in 1:num_pwy) {
+          curr_xi_dfs[[j]][i, ] <- results[[j]]$curr_xi_dfs_j
+          kmat_dfs[[j]] <- results[[j]]$kmat_dfs_j
         }
 
       } else {
@@ -403,40 +429,65 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
     } else if(mthd == "VB"){
       if(i%%skipper==0){
 
-        for (j in 1:num_pwy){
-
-          if(rel_method == "gp"){
-            Glstr = as.list(matrix(prv.alpha(gamma,i),nrow = length(gamma[i-1,]), ncol=1))
-            KDFG = Map('*',kmat_dfs,Glstr)
-            AMK = Map('*',alpha_mats_k,Glstr)
-            y_tilde[[j]] = y - mean(y) - Reduce("+",(Map('%*%',KDFG,AMK))) + KDFG[[j]]%*%AMK[[j]]
+        results <- foreach(j = 1:num_pwy, .packages = c("plgp")) %dopar% {
+          if (rel_method == "gp") {
+            Glstr <- as.list(matrix(prv.alpha(gamma, i), nrow = length(gamma[i-1,]), ncol = 1))
+            KDFG <- Map('*', kmat_dfs, Glstr)
+            AMK <- Map('*', alpha_mats_k, Glstr)
+            y_tilde_j <- y - mean(y) - Reduce("+", Map('%*%', KDFG, AMK)) + KDFG[[j]] %*% AMK[[j]]
+          } else {
+            y_tilde_j <- y  # Default assignment if rel_method is not "gp"
           }
 
-          p_gam = mean(gamma[(max((i-skipper),1)):i,j], na.rm=TRUE)
+          p_gam <- mean(gamma[(max((i - skipper), 1)):i, j], na.rm = TRUE)
 
-          elbo_vec = c()
-          mu_list = list()
+          elbo_vec <- numeric(Restarts)
+          mu_list <- vector("list", Restarts)
 
-          for(r in 1:Restarts){
-            outc = VB(y = y_tilde[[j]], X = pwy_dfs[[j]], corrmat = corr_mats[[j]], num_locs = ncol(pwy_dfs[[j]]), Sigmat = sigmasq[i,], GP = GP_status, lambda = 1, iters = 30, rand = TRUE, prior_scaler = 1.0, lkli = dist)
-            elbo_vec = c(elbo_vec, outc$elbo)
-            mu_list = c(mu_list, list(outc$mu_r))
+          for (r in 1:Restarts) {
+            outc <- VB(
+              y = y_tilde_j,
+              X = pwy_dfs[[j]],
+              corrmat = corr_mats[[j]],
+              num_locs = ncol(pwy_dfs[[j]]),
+              Sigmat = sigmasq[i,],
+              GP = GP_status,
+              lambda = 1,
+              iters = 30,
+              rand = TRUE,
+              prior_scaler = 1.0,
+              lkli = dist
+            )
+            elbo_vec[r] <- outc$elbo
+            mu_list[[r]] <- outc$mu_r
           }
 
           elbo_vec[is.nan(elbo_vec)] <- 0
-          curr_xi_dfs[[j]][i,] = ((p_gam*mu_list[[which.max(elbo_vec)]]+(1-p_gam)*-1)>0)*1 #new v2
+          selected_mu <- mu_list[[which.max(elbo_vec)]]
+          curr_xi_dfs_j <- ((p_gam * selected_mu + (1 - p_gam) * -1) > 0) * 1
 
-          # Rebuilding Pathways using only selected genes
-          idx = replace(curr_xi_dfs[[j]][i,], is.na(curr_xi_dfs[[j]][i,]), 0)
-          if(sum(idx)==0){idx=sample(1:ncol(pwy_dfs[[j]]),sample(1:ncol(pwy_dfs[[j]]),1))}
-          kmat_dfs[[j]] = plgp::covar(as.matrix(pwy_dfs[[j]][,idx]), d=(4/(3*nrow(pwy_dfs[[j]])))^(0.2)*sqrt(1), g = 0.00001)
+          idx <- replace(curr_xi_dfs_j, is.na(curr_xi_dfs_j), 0)
+          if (sum(idx) == 0) {
+            idx <- sample(1:ncol(pwy_dfs[[j]]), sample(1:ncol(pwy_dfs[[j]]), 1))
+          }
+          kmat_dfs_j <- plgp::covar(as.matrix(pwy_dfs[[j]][, idx]), d = (4 / (3 * nrow(pwy_dfs[[j]])))^(0.2) * sqrt(1), g = 0.00001)
+
+          list(curr_xi_dfs_j = curr_xi_dfs_j, kmat_dfs_j = kmat_dfs_j)
         }
+        for (j in 1:num_pwy) {
+          curr_xi_dfs[[j]][i, ] <- results[[j]]$curr_xi_dfs_j
+          kmat_dfs[[j]] <- results[[j]]$kmat_dfs_j
+        }
+
       } else {
         for(j in 1:num_pwy){
           curr_xi_dfs[[j]][i,] = curr_xi_dfs[[j]][i-1,]
         }
       }
     }
+
+    # Terminate parallelization clusters
+    stopCluster(cl)
 
     prcent = prcent + 1/(2*N_norm)*100
     cat(sprintf("\rProgress: %.1f%%", prcent))
@@ -451,61 +502,104 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   gam_mod = (((MLN_gamma_results - min(MLN_gamma_results, na.rm=TRUE))/(max(MLN_gamma_results, na.rm=TRUE) - min(MLN_gamma_results, na.rm=TRUE)))>0.5)*1
 
   f_xi = list()
+
+  # initialize parallelization clusters
+  cl <- makeCluster(num_cores)
+  registerDoParallel(cl)
+
   # Gene Selection
   if(mthd == 'MCMC'){
 
-      for(j in 1:num_pwy){
-
-        if(rel_method == "gp"){
-          Glstr = gam_mod
-          KDFG = Map('*',kmat_dfs,Glstr)
-          AMK = Map('*',alpha_mats_k,Glstr)
-          y_tilde[[j]] = y
-        }
-
-        p_gam = gam_mod[j]
-
-        elbo_vec = c()
-        mu_list = list()
-
-        for(r in 1:Restarts){
-          outc = BIGM(y = y_tilde[[j]], pwy_dfs[[j]], corrmat = corr_mats[[j]], num_locs = ncol(pwy_dfs[[j]]), k_on = 1, N=300, rand = TRUE, prior_scaler = 1.0, lkli=dist)
-          elbo_vec = c(elbo_vec, outc$elbo)
-          mu_list = c(mu_list, list(outc$mu_r))
-        }
-
-        elbo_vec[is.nan(elbo_vec)] <- 0
-        curr_xi_dfs[[j]][i,] = ((p_gam*mu_list[[which.max(elbo_vec)]]+(1-p_gam)*-1)>0)*1 #new v2
-
-        f_xi = c(f_xi,list(((p_gam*mu_list[[which.max(elbo_vec)]]+(1-p_gam)*-1)>0)*1)) #new v2
+    results <- foreach(j = 1:num_pwy, .packages = c("plgp")) %dopar% {
+      if (rel_method == "gp") {
+        Glstr <- gam_mod
+        KDFG <- Map('*', kmat_dfs, Glstr)
+        AMK <- Map('*', alpha_mats_k, Glstr)
+        y_tilde_j <- y
+      } else {
+        y_tilde_j <- y  # Default assignment if rel_method is not "gp"
       }
+
+      p_gam <- gam_mod[j]
+
+      elbo_vec <- numeric(Restarts)
+      mu_list <- vector("list", Restarts)
+
+      for (r in 1:Restarts) {
+        outc <- BIGM(
+          y = y_tilde_j,
+          X = pwy_dfs[[j]],
+          corrmat = corr_mats[[j]],
+          num_locs = ncol(pwy_dfs[[j]]),
+          k_on = 1,
+          N = 300,
+          rand = TRUE,
+          prior_scaler = 1.0,
+          lkli = dist
+        )
+        elbo_vec[r] <- outc$elbo
+        mu_list[[r]] <- outc$mu_r
+      }
+
+      elbo_vec[is.nan(elbo_vec)] <- 0
+      curr_xi_dfs_j <- ((p_gam * mu_list[[which.max(elbo_vec)]] + (1 - p_gam) * -1) > 0) * 1
+
+      f_xi_j <- ((p_gam * mu_list[[which.max(elbo_vec)]] + (1 - p_gam) * -1) > 0) * 1
+
+      list(curr_xi_dfs_j = curr_xi_dfs_j, f_xi_j = f_xi_j)
+    }
+    for (j in 1:num_pwy) {
+      curr_xi_dfs[[j]][i, ] <- results[[j]]$curr_xi_dfs_j
+      f_xi[[j]] <- results[[j]]$f_xi_j
+    }
+
     # variational bayes implementation
   } else if(mthd == "VB"){
 
-      for (j in 1:num_pwy){
-
-        if(rel_method == "gp"){
-          Glstr = gam_mod
-          KDFG = Map('*',kmat_dfs,Glstr)
-          AMK = Map('*',alpha_mats_k,Glstr)
-          y_tilde[[j]] = y
-        }
-
-        p_gam = gam_mod[j]
-
-        elbo_vec = c()
-        mu_list = list()
-
-        for(r in 1:Restarts){
-          outc = VB(y = y_tilde[[j]], X = pwy_dfs[[j]], corrmat = corr_mats[[j]], num_locs = ncol(pwy_dfs[[j]]), Sigmat = sigmasq[i,], GP = GP_status, lambda = 1, iters = 30, rand = TRUE, prior_scaler = 1.0, lkli = dist)
-          elbo_vec = c(elbo_vec, outc$elbo)
-          mu_list = c(mu_list, list(outc$mu_r))
-        }
-
-        elbo_vec[is.nan(elbo_vec)] <- 0
-        f_xi = c(f_xi,list(((p_gam*mu_list[[which.max(elbo_vec)]]+(1-p_gam)*-1)>0)*1)) #new v2
+    results <- foreach(j = 1:num_pwy, .packages = c("plgp")) %dopar% {
+      if (rel_method == "gp") {
+        Glstr <- gam_mod
+        KDFG <- Map('*', kmat_dfs, Glstr)
+        AMK <- Map('*', alpha_mats_k, Glstr)
+        y_tilde_j <- y
+      } else {
+        y_tilde_j <- y  # Default assignment if rel_method is not "gp"
       }
+
+      p_gam <- gam_mod[j]
+
+      elbo_vec <- numeric(Restarts)
+      mu_list <- vector("list", Restarts)
+
+      for (r in 1:Restarts) {
+        outc <- VB(
+          y = y_tilde_j,
+          X = pwy_dfs[[j]],
+          corrmat = corr_mats[[j]],
+          num_locs = ncol(pwy_dfs[[j]]),
+          Sigmat = sigmasq[i, ],
+          GP = GP_status,
+          lambda = 1,
+          iters = 30,
+          rand = TRUE,
+          prior_scaler = 1.0,
+          lkli = dist
+        )
+        elbo_vec[r] <- outc$elbo
+        mu_list[[r]] <- outc$mu_r
+      }
+
+      elbo_vec[is.nan(elbo_vec)] <- 0
+      f_xi_j <- ((p_gam * mu_list[[which.max(elbo_vec)]] + (1 - p_gam) * -1) > 0) * 1
+
+      list(f_xi_j = f_xi_j)
+    }
+    f_xi <- lapply(results, function(res) res$f_xi_j)
+
   }
+
+  # Terminate parallelization clusters
+  stopCluster(cl)
 
   mln_indic = 1
   MLN_results = currxi_results = numeric(ncol(dat)-1)

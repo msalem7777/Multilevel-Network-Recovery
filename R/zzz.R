@@ -1,7 +1,7 @@
 .onAttach <- function(libname, pkgname) {
   # Load your libraries or do other initialization here
   required_packages <- c(
-    "GGally", "GIGrvg", "car", "class", "dplyr", "expm", "fMultivar",
+    "GGally", "GIGrvg", "car", "class", "doParallel", "dplyr", "expm", "fMultivar", "foreach",
     "ggnetwork", "ggplot2", "gtools", "infotheo",
     "invgamma", "laGP", "mvtnorm", "network", "quantreg", "robustbase",
     "rpart", "sna", "splines", "tidyr", "tidyverse"
