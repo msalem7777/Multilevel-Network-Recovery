@@ -69,7 +69,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   MLN_vec_mse = c()
 
   # Creating a y
-  y = dat[,1]
+  y = as.data.frame(dat[,1])
   og_df = dat[-c((length(y))),]
   group_identifier_vector = c(dat[(length(y)),])
   group_list = paste(c(1:num_pwy))
