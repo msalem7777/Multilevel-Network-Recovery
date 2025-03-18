@@ -48,6 +48,7 @@
 #' @import tidyr
 #' @import tidyverse
 #' @importFrom Matrix forceSymmetric
+#' @importFrom doParallel registerDoParallel
 #' @importFrom ClusterR GMM
 #' @importFrom ClusterR predict_GMM
 #' @importFrom ald rALD dALD

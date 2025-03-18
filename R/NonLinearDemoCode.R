@@ -20,9 +20,11 @@
 #' @import GGally
 #' @import GIGrvg
 #' @import class
+#' @import doParallel
 #' @import dplyr
 #' @import expm
 #' @import fMultivar
+#' @import foreach
 #' @import ggnetwork
 #' @import ggplot2
 #' @import gtools
@@ -31,11 +33,13 @@
 #' @import laGP
 #' @import mvtnorm
 #' @import network
+#' @import parallel
 #' @import rpart
 #' @import sna
 #' @import tidyr
 #' @import tidyverse
 #' @importFrom Matrix forceSymmetric
+#' @importFrom doParallel registerDoParallel
 #' @importFrom ClusterR GMM
 #' @importFrom ClusterR predict_GMM
 #' @importFrom ald rALD dALD
