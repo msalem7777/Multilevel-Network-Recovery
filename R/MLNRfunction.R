@@ -73,7 +73,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   og_df = dat[-c((length(y))),]
   group_identifier_vector = c(dat[(length(y)),])
   group_list = paste(c(1:num_pwy))
-  y = (y[-c(nrow(y)),1])[[1]]
+  y = y[-c(nrow(y)),1]
   nx = length(y)
 
   out_list[["y"]] = y
