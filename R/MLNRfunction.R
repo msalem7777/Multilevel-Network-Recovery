@@ -73,9 +73,10 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   og_df = dat[-c((length(y))),]
   group_identifier_vector = c(dat[(length(y)),])
   group_list = paste(c(1:num_pwy))
-  y = y[-c(nrow(y))]
+  y = y[-c(nrow(y)),]
   y =  as.numeric(y)
   nx = length(y)
+  print(paste("Sample size is",nx))
 
   out_list[["y"]] = y
   out_list[["X"]] = dat[1:(dim(dat)[1]-1),2:dim(dat)[2]]
@@ -135,6 +136,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   alpha_prior_V = list()
   for(i in 1:num_pwy){
     if(penalty == "function"){
+      print(dim(kmat_dfs[[i]]))
       alpha_prior_V = c(alpha_prior_V, list(sigmasq_alpha*kmat_dfs[[i]]+sqrt(.Machine$double.eps)*diag(nrow = nx)))
     } else if(penalty == "weights"){
       alpha_prior_V = c(alpha_prior_V, list(sigmasq_alpha*diag(nrow=nx)))
