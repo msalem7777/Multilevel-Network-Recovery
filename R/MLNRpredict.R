@@ -44,6 +44,7 @@ MLNR.predict = function(dat_pred, model, cov_transform = "none"){
   num_pwy = model[["num_sets"]]
   gam_mod = model[["gamma"]]
   selected_indcs = gam_mod*seq(1,num_pwy)
+  selected_indcs = selected_indcs[selected_indcs!=0]
 
   f_xi = list()
 
@@ -53,15 +54,15 @@ MLNR.predict = function(dat_pred, model, cov_transform = "none"){
 
   y_hat = rep(0, (dim(dat_pred)[1]-1))
 
-  for(i in 1:num_pwy){
-    if(i %in% selected_indcs){
-      stringr_xi = paste0("xi.",1)
-      f_xi[[i]] = model[[stringr_xi]]
-      X = as.matrix(pwy_dfs[[i]][, f_xi[[i]]])
-      XX = as.matrix(pwy_dfs_pred[[i]][, f_xi[[i]]])
-      Cn = plgp::covar(XX, X,d=(4/(3*nrow(X)))^(0.2)*sqrt(1), g = 0.001)
-      y_hat = y_hat + Cn%*%as.matrix(alpha_mats[[i]])
-    }
+  cntr = 1
+  for(i in selected_indcs){
+    stringr_xi = paste0("xi.",i)
+    f_xi[[i]] = model[[stringr_xi]]
+    X = as.matrix(pwy_dfs[[i]][, f_xi[[i]]])
+    XX = as.matrix(pwy_dfs_pred[[i]][, f_xi[[i]]])
+    Cn = plgp::covar(XX, X,d=(4/(3*nrow(X)))^(0.2)*sqrt(1), g = 0.001)
+    y_hat = y_hat + Cn%*%as.matrix(alpha_mats[[cntr]])
+    cntr = cntr + 1
   }
 
   y_hat = y_hat*sd(y) + mean(y)
