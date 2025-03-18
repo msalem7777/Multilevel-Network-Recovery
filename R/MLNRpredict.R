@@ -49,7 +49,7 @@ MLNR.predict = function(dat_pred, model, cov_transform = "none"){
 
   # applying the above function
   pwy_dfs = pathway_creator(dat[2:dim(dat)[2]], num_pwy, transform = cov_transform)
-  pwy_dfs_pred = pathway_creator_pred(dat_pred, dat, num_pwy, transform = cov_transform)
+  pwy_dfs_pred = pathway_creator_pred(dat_pred, dat[2:dim(dat)[2]], num_pwy, transform = cov_transform)
 
   y_hat = rep(0, (dim(dat_pred)[1]-1))
 
