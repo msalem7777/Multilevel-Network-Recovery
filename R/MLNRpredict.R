@@ -48,8 +48,8 @@ MLNR.predict = function(dat_pred, model, cov_transform = "scale"){
   f_xi = list()
 
   # applying the above function
-  pwy_dfs = pathway_creator(dat, num_pwy, transform = "scale")
-  pwy_dfs_pred = pathway_creator_pred(dat_pred, dat, num_pwy, transform = "scale")
+  pwy_dfs = pathway_creator(dat, num_pwy, transform = cov_transform)
+  pwy_dfs_pred = pathway_creator_pred(dat_pred, dat, num_pwy, transform = cov_transform)
 
   y_hat = rep(0, (dim(dat_pred)[1]-1))
 
