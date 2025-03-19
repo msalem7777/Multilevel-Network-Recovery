@@ -522,6 +522,10 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   # Gene Selection
   if(mthd == 'MCMC'){
 
+    # initialize parallelization clusters
+    cl <- parallel::makeCluster(num_cores)
+    doParallel::registerDoParallel(cl)
+
     results <- foreach(j = 1:num_pwy, .packages = c("plgp")) %dopar% {
       if (rel_method == "gp") {
         Glstr <- gam_mod
@@ -564,9 +568,14 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
       curr_xi_dfs[[j]][i, ] <- results[[j]]$curr_xi_dfs_j
       f_xi[[j]] <- results[[j]]$f_xi_j
     }
-
+    # Terminate parallelization clusters
+    parallel::stopCluster(cl)
     # variational bayes implementation
   } else if(mthd == "VB"){
+
+    # initialize parallelization clusters
+    cl <- parallel::makeCluster(num_cores)
+    doParallel::registerDoParallel(cl)
 
     results <- foreach(j = 1:num_pwy, .packages = c("plgp")) %dopar% {
       if (rel_method == "gp") {
@@ -607,7 +616,8 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
       list(f_xi_j = f_xi_j)
     }
     f_xi <- lapply(results, function(res) res$f_xi_j)
-
+    # Terminate parallelization clusters
+    parallel::stopCluster(cl)
   }
 
   mln_indic = 1
