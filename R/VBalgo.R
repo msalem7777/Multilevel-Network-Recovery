@@ -47,7 +47,7 @@ VB = function(y, X, corrmat, num_locs, lambda = 1.0, iters=50, GP = 0, Sigmat = 
 
   if(GP == 0){
     library(ClusterR)
-    clustr1 = GMM(as.matrix(y), gaussian_comps = 2, dist_mode = "eucl_dist", seed_mode = "random_subset", km_iter = 10, em_iter = 50)
+    clustr1 = ClusterR::GMM(as.matrix(y), gaussian_comps = 2, dist_mode = "eucl_dist", seed_mode = "random_subset", km_iter = 10, em_iter = 50)
     mus = clustr1$centroids
     sds = clustr1$covariance_matrices
 
@@ -131,8 +131,8 @@ VB = function(y, X, corrmat, num_locs, lambda = 1.0, iters=50, GP = 0, Sigmat = 
 
     }
 
-    clustr2 = GMM(as.matrix(logodds,ncol=1), gaussian_comps = 2, dist_mode = "eucl_dist", seed_mode = "random_subset", km_iter = 10, em_iter = 50)
-    clusters = predict_GMM(as.matrix(logodds), clustr2$centroids, clustr2$covariance_matrices, clustr2$weights)
+    clustr2 = ClusterR::GMM(as.matrix(logodds,ncol=1), gaussian_comps = 2, dist_mode = "eucl_dist", seed_mode = "random_subset", km_iter = 10, em_iter = 50)
+    clusters = ClusterR::predict_GMM(as.matrix(logodds), clustr2$centroids, clustr2$covariance_matrices, clustr2$weights)
     clusters = clusters$cluster_labels
     big = which.max(clustr2$centroids)
     small = which.min(clustr2$centroids)
