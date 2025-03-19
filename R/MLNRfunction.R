@@ -416,7 +416,8 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
           if (sum(idx) == 0) {
             idx <- sample(1:ncol(pwy_dfs[[j]]), sample(1:ncol(pwy_dfs[[j]]), 1))
           }
-          kmat_dfs_j <- plgp::covar(as.matrix(pwy_dfs[[j]][, idx]), d = (4 / (3 * nrow(pwy_dfs[[j]])))^(0.2) * sqrt(1), g = 0.00001)
+          # kmat_dfs_j <- plgp::covar(as.matrix(pwy_dfs[[j]][, idx]), d = (4 / (3 * nrow(pwy_dfs[[j]])))^(0.2) * sqrt(1), g = 0.00001)
+          kmat_dfs_j <- plgp::covar(as.matrix(pwy_dfs[[j]][, idx]), d = 1, g = 0.00001)
 
           list(curr_xi_dfs_j = curr_xi_dfs_j, kmat_dfs_j = kmat_dfs_j)
         }
@@ -475,7 +476,8 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
           if (sum(idx) == 0) {
             idx <- sample(1:ncol(pwy_dfs[[j]]), sample(1:ncol(pwy_dfs[[j]]), 1))
           }
-          kmat_dfs_j <- plgp::covar(as.matrix(pwy_dfs[[j]][, idx]), d = (4 / (3 * nrow(pwy_dfs[[j]])))^(0.2) * sqrt(1), g = 0.00001)
+          # kmat_dfs_j <- plgp::covar(as.matrix(pwy_dfs[[j]][, idx]), d = (4 / (3 * nrow(pwy_dfs[[j]])))^(0.2) * sqrt(1), g = 0.00001)
+          kmat_dfs_j <- plgp::covar(as.matrix(pwy_dfs[[j]][, idx]), d = 1, g = 0.00001)
 
           list(curr_xi_dfs_j = curr_xi_dfs_j, kmat_dfs_j = kmat_dfs_j)
         }
@@ -619,7 +621,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
   # Rebuilding Pathways using only selected genes
   for(j in 1:num_pwy){
     xi_vec = f_xi[[j]]
-    kmat_dfs[[j]] = plgp::covar(as.matrix(pwy_dfs[[j]][, xi_vec]), d=(4/(3*nrow(pwy_dfs[[j]])))^(0.2)*sqrt(1), g = 0.00001)
+    kmat_dfs[[j]] = plgp::covar(as.matrix(pwy_dfs[[j]][, xi_vec]), d=1, g = 0.00001)
   }
 
   selected_indcs = gam_mod*seq(1,num_pwy)
