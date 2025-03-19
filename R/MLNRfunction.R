@@ -106,7 +106,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
     for(i in 1:num_pwy){
       y_tilde[[i]] = as.data.frame(matrix(NA, nrow = (dim(pwy_dfs[[i]])[2]), ncol = 1))
       for(j in 1:(dim(pwy_dfs[[i]])[2])){
-        y_tilde[[i]][j,1] = mutinformation(discretize(y),discretize(pwy_dfs[[i]][j]), method="emp")
+        y_tilde[[i]][j,1] = infotheo::mutinformation(infotheo::discretize(y),infotheo::discretize(pwy_dfs[[i]][j]), method="emp")
       }
     }
     GP_status = 0
@@ -387,7 +387,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
             AMK <- Map('*', alpha_mats_k, Glstr)
             y_tilde_j <- y - mean(y) - Reduce("+", Map('%*%', KDFG, AMK)) + KDFG[[j]] %*% AMK[[j]]
           } else {
-            y_tilde_j <- y  # Default assignment if rel_method is not "gp"
+            y_tilde_j <- unlist(y_tilde[j])  # Default assignment if rel_method is not "gp"
           }
 
           p_gam <- mean(gamma[(max((i - skipper), 1)):i, j], na.rm = TRUE)
@@ -451,7 +451,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
             AMK <- Map('*', alpha_mats_k, Glstr)
             y_tilde_j <- y - mean(y) - Reduce("+", Map('%*%', KDFG, AMK)) + KDFG[[j]] %*% AMK[[j]]
           } else {
-            y_tilde_j <- y  # Default assignment if rel_method is not "gp"
+            y_tilde_j <- unlist(y_tilde[j])  # Default assignment if rel_method is not "gp"
           }
 
           p_gam <- mean(gamma[(max((i - skipper), 1)):i, j], na.rm = TRUE)
@@ -519,10 +519,6 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
 
   f_xi = list()
 
-  # initialize parallelization clusters
-  cl <- parallel::makeCluster(num_cores)
-  doParallel::registerDoParallel(cl)
-
   # Gene Selection
   if(mthd == 'MCMC'){
 
@@ -533,7 +529,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
         AMK <- Map('*', alpha_mats_k, Glstr)
         y_tilde_j <- y
       } else {
-        y_tilde_j <- y  # Default assignment if rel_method is not "gp"
+        y_tilde_j <- unlist(y_tilde[j])  # Default assignment if rel_method is not "gp"
       }
 
       p_gam <- gam_mod[j]
@@ -579,7 +575,7 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
         AMK <- Map('*', alpha_mats_k, Glstr)
         y_tilde_j <- y
       } else {
-        y_tilde_j <- y  # Default assignment if rel_method is not "gp"
+        y_tilde_j <- unlist(y_tilde[j])  # Default assignment if rel_method is not "gp"
       }
 
       p_gam <- gam_mod[j]
@@ -613,9 +609,6 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
     f_xi <- lapply(results, function(res) res$f_xi_j)
 
   }
-
-  # Terminate parallelization clusters
-  parallel::stopCluster(cl)
 
   mln_indic = 1
   MLN_results = currxi_results = numeric(ncol(dat)-1)
