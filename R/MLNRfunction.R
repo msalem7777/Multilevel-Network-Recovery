@@ -369,12 +369,13 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
       }
     }
 
-    # initialize parallelization clusters
-    cl <- parallel::makeCluster(num_cores)
-    doParallel::registerDoParallel(cl)
 
     # Gene Selection
     if(mthd == 'MCMC'){
+
+      # initialize parallelization clusters
+      cl <- parallel::makeCluster(num_cores)
+      doParallel::registerDoParallel(cl)
 
       if(i%%skipper==0){
 
@@ -431,9 +432,15 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
           curr_xi_dfs[[j]][i,] = curr_xi_dfs[[j]][i-1,]
         }
       }
+      # Terminate parallelization clusters
+      parallel::stopCluster(cl)
       # variational bayes implementation
     } else if(mthd == "VB"){
       if(i%%skipper==0){
+
+        # initialize parallelization clusters
+        cl <- parallel::makeCluster(num_cores)
+        doParallel::registerDoParallel(cl)
 
         results <- foreach(j = 1:num_pwy, .packages = c("plgp")) %dopar% {
           if (rel_method == "gp") {
@@ -491,10 +498,9 @@ MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1
           curr_xi_dfs[[j]][i,] = curr_xi_dfs[[j]][i-1,]
         }
       }
+      # Terminate parallelization clusters
+      parallel::stopCluster(cl)
     }
-
-    # Terminate parallelization clusters
-    parallel::stopCluster(cl)
 
     prcent = prcent + 1/(2*N_norm)*100
     cat(sprintf("\rProgress: %.1f%%", prcent))
