@@ -730,12 +730,41 @@ MLNR = function(dat, num_pwy, mlnr_rho = 1, skipper = 300, smpl.sz = 2, N_norm =
     cat(sprintf("\rProgress: %.1f%%", prcent))
   }
 
-  # Expec alpha
-  # alpha_mats_k = lapply(alpha_mats, function(x) {x <- x[(N_norm*0.7):N_norm, ]})
-  # alpha_mats_k = lapply(alpha_mats_k, function(x) {x <- colMeans(x, na.rm=TRUE)})
+  posterior_mean_alpha = list()
+  # posterior_mean
+  if(dist == "mvn"){
 
-  # MAP
-  alpha_mats_k = lapply(alpha_mats, function(x) {x <- x[which.max(ll_vec), ]})
+    for (j in 1:sum(gam_mod)){
+
+      if(sum(gam_mod)==1){
+        Rem_term = 0
+      } else {
+        Rem_term = Reduce("+",(Map('%*%',kmat_dfs_fin[-j],alpha_mats_k[-j])))
+      }
+
+      # sampling first path coefficients from spike slab prior
+      alph_var = sigmasq[i-1,1]*solve(sigmasq[i-1,1]*solve(alpha_prior_V[[j]])+t(kmat_dfs_fin[[j]])%*%(kmat_dfs_fin[[j]]))
+      alph_var = as.matrix(Matrix::forceSymmetric(alph_var))
+      posterior_mean_alpha[[j]] = (1/sigmasq[i-1,1])*alph_var%*%t(kmat_dfs_fin[[j]])%*%(y - mean(y)-omega*Rem_term)
+    }
+  } else if(dist == "ald"){
+
+    for (j in 1:sum(gam_mod)){
+
+      if(sum(gam_mod)==1){
+        Rem_term = 0
+      } else {
+        Rem_term = Reduce("+",(Map('%*%',kmat_dfs_fin[-j],alpha_mats_k[-j])))
+      }
+
+      # sampling first path coefficients from spike slab prior
+      ald_bigB_inv[[j]] = t(kmat_dfs[[j]])%*%solve(ald_z_mat)%*%kmat_dfs[[j]]/(sqrt(sigmasq[i-1,])*ald_tau^2) + solve(alpha_prior_V[[j]])
+      ald_bigB = solve(ald_bigB_inv[[j]])
+      posterior_mean_alpha[[j]] = ald_bigB%*%(kmat_dfs[[j]]%*%(solve(ald_z_mat))%*%as.matrix((y- mean(y)-omega*Rem_term)-ald_theta*ald_z_vec)/(sqrt(sigmasq[i-1,])*ald_tau^2))
+    }
+  }
+
+  alpha_mats_k = posterior_mean_alpha
 
   yhat = as.numeric(Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))*sd(out_list[['y']])+mean(out_list[['y']])
   MLN_mse = mean((y-Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))^2)
@@ -743,9 +772,9 @@ MLNR = function(dat, num_pwy, mlnr_rho = 1, skipper = 300, smpl.sz = 2, N_norm =
   out_list[["yhat"]] = yhat
 
   if(mthd=="VB"){
-    model_metric = outc$elbo
+    model_metric = elbo_vec
   } else if(mthd == "MCMC"){
-    model_metric = sum(dnorm(y, mean=(Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k)))), sd = 1, log = TRUE))
+    model_metric = ll_vec
   }
 
   out_list[["gamma"]] = gam_mod
