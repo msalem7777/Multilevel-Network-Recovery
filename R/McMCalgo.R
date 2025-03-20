@@ -39,7 +39,7 @@
 #' @importFrom plgp covar.sep
 #' @importFrom utils combn
 #' @export
-BIGM = function(y, X, corrmat, num_locs, prior_scaler = 10, N=1000, k_on = 0, rand = FALSE, lkli = "mvn", ald_skew=0.5){
+BIGM = function(y, X, d_opt, corrmat, num_locs, prior_scaler = 10, N=1000, k_on = 0, rand = FALSE, lkli = "mvn", ald_skew=0.5){
   y_s = scale(y)
   X_s = X
   MMR = matrix(0, nrow = dim(X_s)[1], ncol = dim(X_s)[2])
@@ -55,8 +55,6 @@ BIGM = function(y, X, corrmat, num_locs, prior_scaler = 10, N=1000, k_on = 0, ra
     YGP = as.matrix(as.numeric(scale(y)), ncol=1)
 
     Sigmat = 1
-    # d_opt = (4/(3*nrow(X_s)))^(0.2)*sqrt(Sigmat)
-    d_opt = 1
 
     logodds = fX_sig = c()
 
@@ -64,7 +62,7 @@ BIGM = function(y, X, corrmat, num_locs, prior_scaler = 10, N=1000, k_on = 0, ra
 
       XGP = as.matrix(X[,l])
       K = plgp::covar.sep(XGP, d=d_opt, g=Sigmat)
-      KX = covar.sep(XGP, d=d_opt, g=0)
+      KX = plgp::covar.sep(XGP, d=d_opt, g=0)
       Ki = solve(K)
       fX = c(fX, list(KX %*% Ki %*% YGP))
       fX_sig = c(fX_sig, Sigmat)

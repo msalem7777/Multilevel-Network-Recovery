@@ -266,12 +266,12 @@ corr_mat_creator = function(df_list, num_pw){
 #' @param num_pw A scalar numeric for the number of sets in the data
 #' @return A list of set dataframes
 
-kmat_creator = function(df_list, num_pw){
+kmat_creator = function(df_list, num_pw, mlnr_rho){
   listr = list()
   for(i in 1:num_pw){
       # listr[[i]] = listr[[i]] + hetGP::cov_gen(as.matrix(df_list[[i]]), theta=(4/(3*nrow(df_list[[i]])))^(0.2)*sqrt(1), type = "Gaussian")
       # listr[[i]] =  plgp::covar(as.matrix(df_list[[i]]),d=(4/(3*nrow(df_list[[i]])))^(0.2)*sqrt(1), g = 0.00001)
-      listr[[i]] =  plgp::covar(as.matrix(df_list[[i]]),d=1, g = 0.00001)
+      listr[[i]] =  plgp::covar(as.matrix(df_list[[i]]),d = mlnr_rho, g = 0.00001)
   }
 
   return(listr)

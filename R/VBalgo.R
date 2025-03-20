@@ -39,7 +39,7 @@
 #' @importFrom plgp covar.sep
 #' @importFrom utils combn
 #' @export
-VB = function(y, X, corrmat, num_locs, lambda = 1.0, iters=50, GP = 0, Sigmat = NULL, prior_scaler = 10, plot_on=FALSE, true_dist = 0, ker_wts = NULL, rand = TRUE, lambda_cv = 2.0, lkli = "mvn"){
+VB = function(y, X, corrmat, num_locs, d_opt = 1, lambda = 1.0, iters=50, GP = 0, Sigmat = NULL, prior_scaler = 10, plot_on=FALSE, true_dist = 0, ker_wts = NULL, rand = TRUE, lambda_cv = 2.0, lkli = "mvn"){
 
   ELBO = numeric(iters)
   Hx_mean = numeric(iters)
@@ -96,8 +96,6 @@ VB = function(y, X, corrmat, num_locs, lambda = 1.0, iters=50, GP = 0, Sigmat = 
       }
 
       Sigmat = 1
-      d_opt = (4/(3*nrow(X)))^(0.2)*sqrt(Sigmat)
-      d_opt = 1
       K = plgp::covar.sep(XGP, d=d_opt, g=Sigmat)
       K_full_list[[l]] = K
       KX = plgp::covar.sep(XGP, d=d_opt, g=0)
