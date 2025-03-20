@@ -769,14 +769,11 @@ MLNR = function(dat, num_pwy, mlnr_rho = 1, skipper = 300, smpl.sz = 2, N_norm =
   yhat = as.numeric(Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))*sd(out_list[['y']])+mean(out_list[['y']])
   MLN_mse = mean((y-Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))^2)
 
+
+  ll_met = sum(dnorm(y, yhat, sigmasq[N_norm,], log=TRUE))
+  model_metric = ll_met
+
   out_list[["yhat"]] = yhat
-
-  if(mthd=="VB"){
-    model_metric = elbo_vec
-  } else if(mthd == "MCMC"){
-    model_metric = ll_vec
-  }
-
   out_list[["gamma"]] = gam_mod
   out_list[["gamma_prob"]] = MLN_gamma_results
   cntr = 1
