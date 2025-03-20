@@ -56,7 +56,7 @@
 #' @importFrom plgp covar.sep
 #' @importFrom utils combn
 #' @export
-MLNR = function(dat, num_pwy, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1_connected = 1, sigmasq_y = 1,
+MLNR = function(dat, num_pwy, mlnr_rho = 1, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1_connected = 1, sigmasq_y = 1,
                 a = 1, b = 1, ald_p = 0.5, n0=1, s0=1, pi_0 = 0.5, a_al=0.5, b_al=0.5, sigmasq_alpha=1,
                 penalty = "weights", dist = "mvn", mthd = "VB", Restarts = 1, rel_method = "mi", w_set="avg.corr"){
 

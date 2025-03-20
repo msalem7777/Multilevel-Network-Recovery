@@ -47,7 +47,7 @@
 #' @importFrom plgp covar.sep
 #' @importFrom utils combn
 #' @export
-demo_code_NonLinear <- function(num_sets = 5, n_samples = 100, distn_mean = 0, distn_sd = 1, skew = 0.5,
+demo_code_NonLinear <- function(num_sets = 5, n_samples = 100, mlnr_rho = 1, distn_mean = 0, distn_sd = 1, skew = 0.5,
                       sigmasq_y = 1, a = 1, b = 1, penalty = "function", dist = "mvn", mthd = "VB",
                       Restarts = 1, rel_method = "gp", w_set = "avg.corr") {
 
@@ -58,7 +58,7 @@ demo_code_NonLinear <- function(num_sets = 5, n_samples = 100, distn_mean = 0, d
   dat_pred = dat_pred[, 2:dim(dat_pred)[2]]  # Removes response from testing data
 
   # Fit model
-  model = MLNR(dat, num_sets, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1_connected = 0,
+  model = MLNR(dat, num_sets, mlnr_rho = 1, skipper = 300, smpl.sz = 2, N_norm = 2000, level_1_connected = 0,
                sigmasq_y = sigmasq_y, a = a, b = b, ald_p = 0.5, n0 = 1, s0 = 1, pi_0 = 0.5,
                a_al = 0.5, b_al = 0.5, sigmasq_alpha = 1, penalty = penalty, dist = dist, mthd = mthd,
                Restarts = Restarts, rel_method = rel_method, w_set = w_set)
