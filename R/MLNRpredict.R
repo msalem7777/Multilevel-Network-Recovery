@@ -47,8 +47,6 @@ MLNR.predict = function(dat_pred, model, cov_transform = "none", scale_up=FALSE)
   selected_indcs = gam_mod*seq(1,num_pwy)
   selected_indcs = selected_indcs[selected_indcs!=0]
 
-  f_xi = list()
-
   # applying the above function
   pwy_dfs = pathway_creator(dat[2:dim(dat)[2]], num_pwy, transform = cov_transform)
   pwy_dfs_pred = pathway_creator_pred(dat_pred, dat[2:dim(dat)[2]], num_pwy, transform = cov_transform)
@@ -58,12 +56,17 @@ MLNR.predict = function(dat_pred, model, cov_transform = "none", scale_up=FALSE)
   cntr = 1
   for(i in selected_indcs){
     stringr_xi = paste0("xi.",i)
-    f_xi[[i]] = model[[stringr_xi]]
-    X = as.matrix(pwy_dfs[[i]][, f_xi[[i]]])
-    XX = as.matrix(pwy_dfs_pred[[i]][, f_xi[[i]]])
-    Cn = plgp::covar(XX, X,d = mlnr_rho, g = 0.001)
-    y_hat = y_hat + Cn%*%as.matrix(alpha_mats[[cntr]])
-    cntr = cntr + 1
+    xi_indcs = model[[stringr_xi]]*seq(1,ncol(pwy_dfs[[i]]))
+    if(sum(model[[stringr_xi]])==0){
+        cntr = cntr + 1
+        next
+    } else {
+        X = as.matrix(pwy_dfs[[i]][, xi_indcs])
+        XX = as.matrix(pwy_dfs_pred[[i]][, xi_indcs])
+        Cn = plgp::covar(XX, X,d = mlnr_rho, g = 0.001)
+        y_hat = y_hat + Cn%*%as.matrix(alpha_mats[[cntr]])
+        cntr = cntr + 1
+    }
   }
 
   if(scale_up == TRUE){
