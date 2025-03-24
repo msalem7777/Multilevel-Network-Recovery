@@ -37,7 +37,7 @@
 #' @importFrom plgp covar.sep
 #' @importFrom utils combn
 #' @export
-MLNR.predict = function(dat_pred, model, cov_transform = "none", scale_up=FALSE, CI_level=0.95, sampler = 1000){
+MLNR.predictCI = function(dat_pred, model, cov_transform = "none", scale_up=FALSE, CI_level=0.95, sampler = 1000){
 
   # Creating a y
   y = model[["y"]]
