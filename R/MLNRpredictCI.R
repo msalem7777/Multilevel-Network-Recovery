@@ -1,4 +1,6 @@
-#' Prediction Wrapper with Credible Intervalfor MLNR
+#' MLNR.predictCI
+#'
+#' Prediction Wrapper with Credible Interval for MLNR
 #'
 #' This function predicts a continuous response using the MLNR model for the input dataset.
 #'

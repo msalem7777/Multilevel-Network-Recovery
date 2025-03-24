@@ -39,7 +39,6 @@ NULL
 #' @param X A dataframe or data matrix.
 #' @param Y A continuous response variable as a numeric vector.
 #' @return A numeric value for negative log-likelihood.
-#' @export
 nlsep <- function(par, X, Y){
   theta <- par[1:ncol(X)]
   g <- par[ncol(X)+1]
