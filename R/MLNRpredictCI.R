@@ -92,7 +92,7 @@ MLNR.predictCI = function(dat_pred, model, cov_transform = "none", scale_up=FALS
     y_hat_U = y_hat_U*sd(y) + mean(y)
   }
 
-  df <- data.frame(lower = y_hat_L, pred = y_hat, upper = y_hat_H)
+  df <- data.frame(lower = y_hat_L, pred = y_hat, upper = y_hat_U)
 
   return(df)
 
