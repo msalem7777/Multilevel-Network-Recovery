@@ -59,6 +59,7 @@ MLNR.predictCI = function(dat_pred, model, cov_transform = "none", scale_up=FALS
   pwy_dfs_pred = pathway_creator_pred(dat_pred, dat[2:dim(dat)[2]], num_pwy, transform = cov_transform)
 
   y_hat = rep(0, (dim(dat_pred)[1]-1))
+  y_hat_samples = matrix(0, nrow = length(y_hat), ncol = sampler)
 
   cntr = 1
   for(i in selected_indcs){
