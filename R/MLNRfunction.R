@@ -746,6 +746,7 @@ MLNR = function(dat, num_pwy, mlnr_rho = 1, skipper = 300, smpl.sz = 2, N_norm =
       alph_var = sigmasq[i-1,1]*solve(sigmasq[i-1,1]*solve(alpha_prior_V[[j]])+t(kmat_dfs_fin[[j]])%*%(kmat_dfs_fin[[j]]))
       alph_var = as.matrix(Matrix::forceSymmetric(alph_var))
       posterior_mean_alpha[[j]] = (1/sigmasq[i-1,1])*alph_var%*%t(kmat_dfs_fin[[j]])%*%(y - mean(y)-omega*Rem_term)
+      posterior_var_alpha[[j]] = alph_var
     }
   } else if(dist == "ald"){
 
@@ -761,6 +762,7 @@ MLNR = function(dat, num_pwy, mlnr_rho = 1, skipper = 300, smpl.sz = 2, N_norm =
       ald_bigB_inv[[j]] = t(kmat_dfs[[j]])%*%solve(ald_z_mat)%*%kmat_dfs[[j]]/(sqrt(sigmasq[i-1,])*ald_tau^2) + solve(alpha_prior_V[[j]])
       ald_bigB = solve(ald_bigB_inv[[j]])
       posterior_mean_alpha[[j]] = ald_bigB%*%(kmat_dfs[[j]]%*%(solve(ald_z_mat))%*%as.matrix((y- mean(y)-omega*Rem_term)-ald_theta*ald_z_vec)/(sqrt(sigmasq[i-1,])*ald_tau^2))
+      posterior_var_alpha[[j]] = as.matrix(Matrix::forceSymmetric(ald_bigB))
     }
   }
 
@@ -796,6 +798,8 @@ MLNR = function(dat, num_pwy, mlnr_rho = 1, skipper = 300, smpl.sz = 2, N_norm =
   out_list[["data"]] = dat
   out_list[["all_xi"]] = MLN_results
   out_list[["mlnr_rho"]] = mlnr_rho
+  out_list[["mu_alpha"]] = posterior_mean_alpha
+  out_list[["sigma_alpha"]] = posterior_var_alpha
 
   print("Done!")
   cat("\n")
