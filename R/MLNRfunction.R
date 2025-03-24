@@ -731,6 +731,7 @@ MLNR = function(dat, num_pwy, mlnr_rho = 1, skipper = 300, smpl.sz = 2, N_norm =
   }
 
   posterior_mean_alpha = list()
+  posterior_var_alpha = list()
   # posterior_mean
   if(dist == "mvn"){
 
