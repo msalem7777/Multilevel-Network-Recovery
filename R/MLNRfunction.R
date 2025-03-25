@@ -730,10 +730,13 @@ MLNR = function(dat, num_pwy, mlnr_rho = 1, skipper = 300, smpl.sz = 2, N_norm =
     cat(sprintf("\rProgress: %.1f%%", prcent))
   }
 
+
   posterior_mean_alpha = list()
   posterior_var_alpha = list()
   # posterior_mean
   if(dist == "mvn"){
+
+    sigmasq_hat = (0.5*sum((y - mean(y) - Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))^2)+b/2)/(length(y)/2+a/2 -1)
 
     for (j in 1:sum(gam_mod)){
 
@@ -750,6 +753,8 @@ MLNR = function(dat, num_pwy, mlnr_rho = 1, skipper = 300, smpl.sz = 2, N_norm =
       posterior_var_alpha[[j]] = alph_var
     }
   } else if(dist == "ald"){
+
+    sigmasq_hat = ((s0/2+sum(ald_z_vec)+0.5*sum((solve(ald_z_mat))%*%(as.matrix(y- mean(y)-Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k)))-ald_theta*ald_z_vec)^2)/(ald_tau^2)))/(n0/2+3*length(y)/2-1))^2
 
     for (j in 1:sum(gam_mod)){
 
@@ -801,6 +806,7 @@ MLNR = function(dat, num_pwy, mlnr_rho = 1, skipper = 300, smpl.sz = 2, N_norm =
   out_list[["mlnr_rho"]] = mlnr_rho
   out_list[["mu_alpha"]] = posterior_mean_alpha
   out_list[["sigma_alpha"]] = posterior_var_alpha
+  out_list[["sigmasq_eps"]] = sigmasq_hat
 
   print("Done!")
   cat("\n")

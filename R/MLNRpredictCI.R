@@ -51,6 +51,7 @@ MLNR.predictCI = function(dat_pred, model, cov_transform = "none", scale_up=FALS
   mlnr_rho = model[["mlnr_rho"]]
   mu_alpha_post = model[["mu_alpha"]]
   sigma_alpha_post = model[["sigma_alpha"]]
+  sigmasq_eps = model[["sigmasq_eps"]]
   selected_indcs = gam_mod*seq(1,num_pwy)
   selected_indcs = selected_indcs[selected_indcs!=0]
 
@@ -70,10 +71,13 @@ MLNR.predictCI = function(dat_pred, model, cov_transform = "none", scale_up=FALS
     Cn = plgp::covar(XX, X,d = mlnr_rho, g = 0.001)
     if(sum(model[[stringr_xi]])==0){
       y_hat = y_hat + 0
+      eps_sampler = rmvnorm(sampler, 0, sigmasq_eps*diag(sampler))
+      y_hat_samples = y_hat_samples + t(eps_sampler) # Compute y_hat for all 1000 samples
     } else {
       y_hat = y_hat + Cn%*%as.matrix(alpha_mats[[cntr]])
       alpha_sampler = rmvnorm(sampler, mu_alpha_post[[cntr]], sigma_alpha_post[[cntr]])
-      y_hat_samples = y_hat_samples + Cn %*% t(alpha_sampler)  # Compute y_hat for all 1000 samples
+      eps_sampler = rmvnorm(sampler, 0, sigmasq_eps*diag(sampler))
+      y_hat_samples = y_hat_samples + Cn %*% t(alpha_sampler) + t(eps_sampler) # Compute y_hat for all 1000 samples
     }
 
     cntr = cntr + 1
