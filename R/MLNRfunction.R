@@ -421,6 +421,9 @@ MLNR = function(dat, num_pwy, mlnr_rho = 1, skipper = 300, smpl.sz = 2, N_norm =
           }
           # kmat_dfs_j <- plgp::covar(as.matrix(pwy_dfs[[j]][, idx]), d = (4 / (3 * nrow(pwy_dfs[[j]])))^(0.2) * sqrt(1), g = 0.00001)
           kmat_dfs_j <- plgp::covar(as.matrix(pwy_dfs[[j]][, idx]), d = mlnr_rho, g = 0.00001)
+          if (all(kmat_dfs_j == 1)) {
+            kmat_dfs_j = matrix(0, nrow = nrow(kmat_dfs_j), ncol = ncol(kmat_dfs_j))
+          }
 
           list(curr_xi_dfs_j = curr_xi_dfs_j, kmat_dfs_j = kmat_dfs_j)
         }
@@ -489,6 +492,9 @@ MLNR = function(dat, num_pwy, mlnr_rho = 1, skipper = 300, smpl.sz = 2, N_norm =
           }
           # kmat_dfs_j <- plgp::covar(as.matrix(pwy_dfs[[j]][, idx]), d = (4 / (3 * nrow(pwy_dfs[[j]])))^(0.2) * sqrt(1), g = 0.00001)
           kmat_dfs_j <- plgp::covar(as.matrix(pwy_dfs[[j]][, idx]), d = mlnr_rho, g = 0.00001)
+          if (all(kmat_dfs_j == 1)) {
+            kmat_dfs_j = matrix(0, nrow = nrow(kmat_dfs_j), ncol = ncol(kmat_dfs_j))
+          }
 
           list(curr_xi_dfs_j = curr_xi_dfs_j, kmat_dfs_j = kmat_dfs_j)
         }
@@ -638,6 +644,9 @@ MLNR = function(dat, num_pwy, mlnr_rho = 1, skipper = 300, smpl.sz = 2, N_norm =
   for(j in 1:num_pwy){
     xi_vec = f_xi[[j]]
     kmat_dfs[[j]] = plgp::covar(as.matrix(pwy_dfs[[j]][, xi_vec]), d = mlnr_rho, g = 0.00001)
+    if (all(kmat_dfs[[j]] == 1)) {
+      kmat_dfs[[j]] = matrix(0, nrow = nrow(kmat_dfs[[j]]), ncol = ncol(kmat_dfs[[j]]))
+    }
   }
 
   selected_indcs = gam_mod*seq(1,num_pwy)

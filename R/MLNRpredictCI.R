@@ -71,13 +71,13 @@ MLNR.predictCI = function(dat_pred, model, cov_transform = "none", scale_up=FALS
     Cn = plgp::covar(XX, X,d = mlnr_rho, g = 0.001)
     if(sum(model[[stringr_xi]])==0){
       y_hat = y_hat + 0
-      eps_sampler = rmvnorm(sampler, rep(0,length(y_hat)), sigmasq_eps*diag(sampler))
-      y_hat_samples = y_hat_samples + t(eps_sampler) # Compute y_hat for all 1000 samples
+      # eps_sampler = rmvnorm(sampler, rep(0,length(y_hat)), sigmasq_eps*diag(length(y_hat)))
+      # y_hat_samples = y_hat_samples + t(eps_sampler) # Compute y_hat for all 1000 samples
     } else {
       y_hat = y_hat + Cn%*%as.matrix(alpha_mats[[cntr]])
       alpha_sampler = rmvnorm(sampler, mu_alpha_post[[cntr]], sigma_alpha_post[[cntr]])
-      eps_sampler = rmvnorm(sampler, rep(0,length(y_hat)), sigmasq_eps*diag(sampler))
-      y_hat_samples = y_hat_samples + Cn %*% t(alpha_sampler) + t(eps_sampler) # Compute y_hat for all 1000 samples
+      # eps_sampler = rmvnorm(sampler, rep(0,length(y_hat)), sigmasq_eps*diag(length(y_hat)))
+      y_hat_samples = y_hat_samples + Cn %*% t(alpha_sampler) #+ t(eps_sampler) # Compute y_hat for all 1000 samples
     }
 
     cntr = cntr + 1
@@ -86,8 +86,8 @@ MLNR.predictCI = function(dat_pred, model, cov_transform = "none", scale_up=FALS
   pL = (1 - CI_level)/2
   pU = 1 - pL
 
-  y_hat_L = apply(y_hat_samples, 1, quantile, probs = pL)
-  y_hat_U = apply(y_hat_samples, 1, quantile, probs = pU)
+  y_hat_L = apply(y_hat_samples, 1, quantile, probs = pL) + qnorm(pL,0, sd = sqrt(sigmasq_eps))
+  y_hat_U = apply(y_hat_samples, 1, quantile, probs = pU) + qnorm(pU,0, sd = sqrt(sigmasq_eps))
 
   if(scale_up == TRUE){
     y_hat = y_hat*sd(y) + mean(y)

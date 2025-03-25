@@ -271,6 +271,10 @@ kmat_creator = function(df_list, num_pw, mlnr_rho){
       # listr[[i]] = listr[[i]] + hetGP::cov_gen(as.matrix(df_list[[i]]), theta=(4/(3*nrow(df_list[[i]])))^(0.2)*sqrt(1), type = "Gaussian")
       # listr[[i]] =  plgp::covar(as.matrix(df_list[[i]]),d=(4/(3*nrow(df_list[[i]])))^(0.2)*sqrt(1), g = 0.00001)
       listr[[i]] =  plgp::covar(as.matrix(df_list[[i]]),d = mlnr_rho, g = 0.00001)
+
+      if (all(listr[[i]] == 1)) {
+        listr[[i]] = matrix(0, nrow = nrow(listr[[i]]), ncol = ncol(listr[[i]]))
+      }
   }
 
   return(listr)
