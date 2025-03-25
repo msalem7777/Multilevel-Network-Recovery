@@ -65,19 +65,17 @@ MLNR.predictCI = function(dat_pred, model, cov_transform = "none", scale_up=FALS
   for(i in selected_indcs){
     stringr_xi = paste0("xi.",i)
     xi_indcs = model[[stringr_xi]]*seq(1,ncol(pwy_dfs[[i]]))
+    X = as.matrix(pwy_dfs[[i]][, xi_indcs])
+    XX = as.matrix(pwy_dfs_pred[[i]][, xi_indcs])
+    Cn = plgp::covar(XX, X,d = mlnr_rho, g = 0.001)
     if(sum(model[[stringr_xi]])==0){
-        cntr = cntr + 1
-        next
     } else {
-        X = as.matrix(pwy_dfs[[i]][, xi_indcs])
-        XX = as.matrix(pwy_dfs_pred[[i]][, xi_indcs])
-        Cn = plgp::covar(XX, X,d = mlnr_rho, g = 0.001)
-        y_hat = y_hat + Cn%*%as.matrix(alpha_mats[[cntr]])
-        alpha_sampler = rmvnorm(sampler, mu_alpha_post, sigma_alpha_post)
-        y_hat_samples = y_hat_samples + Cn %*% t(alpha_sampler)  # Compute y_hat for all 1000 samples
-
-        cntr = cntr + 1
+    y_hat = y_hat + Cn%*%as.matrix(alpha_mats[[cntr]])
     }
+    alpha_sampler = rmvnorm(sampler, mu_alpha_post, sigma_alpha_post)
+    y_hat_samples = y_hat_samples + Cn %*% t(alpha_sampler)  # Compute y_hat for all 1000 samples
+
+    cntr = cntr + 1
   }
 
   pL = (1 - CI_level)/2

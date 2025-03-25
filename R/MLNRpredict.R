@@ -57,16 +57,14 @@ MLNR.predict = function(dat_pred, model, cov_transform = "none", scale_up=FALSE)
   for(i in selected_indcs){
     stringr_xi = paste0("xi.",i)
     xi_indcs = model[[stringr_xi]]*seq(1,ncol(pwy_dfs[[i]]))
+    X = as.matrix(pwy_dfs[[i]][, xi_indcs])
+    XX = as.matrix(pwy_dfs_pred[[i]][, xi_indcs])
+    Cn = plgp::covar(XX, X,d = mlnr_rho, g = 0.001)
     if(sum(model[[stringr_xi]])==0){
-        cntr = cntr + 1
-        next
     } else {
-        X = as.matrix(pwy_dfs[[i]][, xi_indcs])
-        XX = as.matrix(pwy_dfs_pred[[i]][, xi_indcs])
-        Cn = plgp::covar(XX, X,d = mlnr_rho, g = 0.001)
-        y_hat = y_hat + Cn%*%as.matrix(alpha_mats[[cntr]])
-        cntr = cntr + 1
+      y_hat = y_hat + Cn%*%as.matrix(alpha_mats[[cntr]])
     }
+    cntr = cntr + 1
   }
 
   if(scale_up == TRUE){
