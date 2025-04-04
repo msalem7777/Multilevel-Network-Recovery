@@ -39,7 +39,7 @@
 #' @importFrom plgp covar.sep
 #' @importFrom utils combn
 #' @export
-MLNR.predictCI = function(dat_pred, model, cov_transform = "none", scale_up=FALSE, CI_level=0.95, sampler = 1000){
+MLNR.predictCI = function(dat_pred, model, interval="credible", cov_transform = "none", scale_up=FALSE, CI_level=0.95, sampler = 1000){
 
   # Creating a y
   y = model[["y"]]
@@ -86,8 +86,14 @@ MLNR.predictCI = function(dat_pred, model, cov_transform = "none", scale_up=FALS
   pL = (1 - CI_level)/2
   pU = 1 - pL
 
-  y_hat_L = apply(y_hat_samples, 1, quantile, probs = pL) + qnorm(pL,0, sd = sqrt(sigmasq_eps))
-  y_hat_U = apply(y_hat_samples, 1, quantile, probs = pU) + qnorm(pU,0, sd = sqrt(sigmasq_eps))
+  if(interval = "predictive"){
+    y_hat_L = apply(y_hat_samples, 1, quantile, probs = pL) + qnorm(pL,0, sd = sqrt(sigmasq_eps))
+    y_hat_U = apply(y_hat_samples, 1, quantile, probs = pU) + qnorm(pU,0, sd = sqrt(sigmasq_eps))
+  } else if(interval = "credible"){
+    y_hat_L = apply(y_hat_samples, 1, quantile, probs = pL)
+    y_hat_U = apply(y_hat_samples, 1, quantile, probs = pU)
+  }
+
 
   if(scale_up == TRUE){
     y_hat = y_hat*sd(y) + mean(y)
