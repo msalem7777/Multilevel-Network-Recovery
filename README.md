@@ -15,9 +15,10 @@ To install MLNR from GitHub, use:
 ```r
 # Install devtools if not already installed
 install.packages("devtools")
+library(devtools)
 
 # Install MLNR from GitHub
-devtools::install_github("msalem7777/MLNR")
+devtools::install_github("msalem7777/Multilevel-Network-Recovery")
 ```
 
 ## **Usage**
