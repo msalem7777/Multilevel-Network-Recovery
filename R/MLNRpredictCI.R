@@ -86,10 +86,10 @@ MLNR.predictCI = function(dat_pred, model, interval="credible", cov_transform = 
   pL = (1 - CI_level)/2
   pU = 1 - pL
 
-  if(interval = "predictive"){
+  if(interval == "predictive"){
     y_hat_L = apply(y_hat_samples, 1, quantile, probs = pL) + qnorm(pL,0, sd = sqrt(sigmasq_eps))
     y_hat_U = apply(y_hat_samples, 1, quantile, probs = pU) + qnorm(pU,0, sd = sqrt(sigmasq_eps))
-  } else if(interval = "credible"){
+  } else if(interval == "credible"){
     y_hat_L = apply(y_hat_samples, 1, quantile, probs = pL)
     y_hat_U = apply(y_hat_samples, 1, quantile, probs = pU)
   }
