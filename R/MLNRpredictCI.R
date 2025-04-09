@@ -69,16 +69,18 @@ MLNR.predictCI = function(dat_pred, model, interval="credible", cov_transform = 
     X = as.matrix(pwy_dfs[[i]][, xi_indcs])
     XX = as.matrix(pwy_dfs_pred[[i]][, xi_indcs])
     Cn = plgp::covar(XX, X,d = mlnr_rho, g = 0.001)
-    Cn = Cn/sum(Cn)
+    # Cn = Cn/sum(Cn)
     if(sum(model[[stringr_xi]])==0){
       y_hat = y_hat + 0
       # eps_sampler = rmvnorm(sampler, rep(0,length(y_hat)), sigmasq_eps*diag(length(y_hat)))
       # y_hat_samples = y_hat_samples + t(eps_sampler) # Compute y_hat for all 1000 samples
     } else {
-      y_hat = y_hat + Cn %*% as.matrix(kmat_dfs[[cntr]]) %*% as.matrix(alpha_mats[[cntr]])
+      # y_hat = y_hat + Cn %*% as.matrix(kmat_dfs[[cntr]]) %*% as.matrix(alpha_mats[[cntr]])
+      y_hat = y_hat + Cn %*% as.matrix(alpha_mats[[cntr]])
       alpha_sampler = rmvnorm(sampler, mu_alpha_post[[cntr]], sigma_alpha_post[[cntr]])
       # eps_sampler = rmvnorm(sampler, rep(0,length(y_hat)), sigmasq_eps*diag(length(y_hat)))
-      y_hat_samples = y_hat_samples + Cn %*% as.matrix(kmat_dfs[[cntr]]) %*% t(alpha_sampler) #+ t(eps_sampler) # Compute y_hat for all 1000 samples
+      # y_hat_samples = y_hat_samples + Cn %*% as.matrix(kmat_dfs[[cntr]]) %*% t(alpha_sampler) #+ t(eps_sampler) # Compute y_hat for all 1000 samples
+      y_hat_samples = y_hat_samples + Cn %*% t(alpha_sampler) #+ t(eps_sampler) # Compute y_hat for all 1000 samples
     }
 
     cntr = cntr + 1
