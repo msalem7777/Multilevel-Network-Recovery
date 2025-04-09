@@ -60,10 +60,11 @@ MLNR.predict = function(dat_pred, model, cov_transform = "none", scale_up=FALSE)
     X = as.matrix(pwy_dfs[[i]][, xi_indcs])
     XX = as.matrix(pwy_dfs_pred[[i]][, xi_indcs])
     Cn = plgp::covar(XX, X,d = mlnr_rho, g = 0.001)
-    Cn = Cn/sum(Cn)
+    # Cn = Cn/sum(Cn)
     if(sum(model[[stringr_xi]])==0){
     } else {
-      y_hat = y_hat + Cn %*% as.matrix(kmat_dfs[[cntr]]) %*%as.matrix(alpha_mats[[cntr]])
+      # y_hat = y_hat + Cn %*% as.matrix(kmat_dfs[[cntr]]) %*%as.matrix(alpha_mats[[cntr]])
+      y_hat = y_hat + Cn%*%as.matrix(alpha_mats[[cntr]])
     }
     cntr = cntr + 1
   }
