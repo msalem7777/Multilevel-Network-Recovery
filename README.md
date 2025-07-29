@@ -33,6 +33,8 @@ demo_linear = MLNR::demo_code_Linear()
 ## **Usage**
 To load the package and start recovering networks:
 
+\1) Load package and import dataset:
+
 ```r
 library(MLNR) # load package
 
@@ -43,18 +45,27 @@ library(MLNR) # load package
 
 # df = MLNR::GenSimDatLinear("mvn", n_samples=10, num_sets=3, distn_mean = 5, distn_sd = 1, skew = 0)
 # View(df)
+```
 
+\2) Model Fitting:
+```r
 # Fit model
 num_sets = #... Manually enter in the number of sets
 model = MLNR(df, num_sets) # You can optimize the fit function's parameters for a better performance on your dataset 
 
 # You can plot actual vs. model prediction
 plot(model$yhat, model$y, main = "Actual vs. Predicted")
+```
 
+\3) Visualization:
+```r
 # You can also create a nested network visualization.
 names_vector <- paste0("S_{", 1:num_sets, "}") # Change this line to create custom set names
 CreateNetworkViz(dat, model[["gamma"]], model[["all_xi"]], num_sets, set_names = names_vector) # Creates a visualization of the network. Connected elements/sets are all relevant to the response
+```
 
+\4) Prediction:
+```r
 # For predicting on a test set, you need to pass a separate test dataset
 # df_pred = # ... Insert appropriate command to load your data as a dataframe in R
 
