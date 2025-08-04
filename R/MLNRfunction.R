@@ -654,96 +654,120 @@ MLNR = function(dat, num_pwy, mlnr_rho = 1, skipper = 300, smpl.sz = 2, N_norm =
 
 
   alpha_prior_V = list()
-  for(i in 1:sum(gam_mod)){
-    if(penalty == "function"){
-        alpha_prior_V = c(alpha_prior_V, list(sigmasq_alpha*kmat_dfs_fin[[i]]+sqrt(.Machine$double.eps)*diag(nrow = nx)))
-    } else if(penalty == "weights"){
+  if(sum(gam_mod) > 0){
+    for(i in 1:sum(gam_mod)){
+      if(penalty == "function"){
+        alpha_prior_V = c(alpha_prior_V, list(sigmasq_alpha*kmat_dfs_fin[[i]] + sqrt(.Machine$double.eps)*diag(nrow = nx)))
+      } else if(penalty == "weights"){
         alpha_prior_V = c(alpha_prior_V, list(sigmasq_alpha*diag(nrow=nx)))
+      }
     }
+  } else {
+    alpha_prior_V = list()  # empty list
   }
 
   # applying the above function
-  if (dist == "mvn"){
-    alpha_mats = alpha_creator(y, kmat_dfs_fin, alpha_prior_V, N_norm, dist = dist, sigmasq = sigmasq)
-  } else if(dist == "ald"){
-    alpha_mats = alpha_creator(y, kmat_dfs_fin, alpha_prior_V, N_norm, dist = dist, sigmasq = sigmasq, ald_tau=ald_tau, ald_theta=ald_theta, ald_z_vec=ald_z_vec, ald_z_mat=ald_z_mat, ald_bigB_inv=ald_bigB_inv)
-  }
-
-  ll_vec = c()
-  # YOURE USING WRONG INDEXING
-  for(i in 2:N_norm){
-
-    alpha_mats_k = lapply(alpha_mats, function(x) prv.alpha(x, i))
-
-    if(dist == "mvn"){
-
-      for (j in 1:sum(gam_mod)){
-
-        if(sum(gam_mod)==1){
-          Rem_term = 0
-        } else {
-          Rem_term = Reduce("+",(Map('%*%',kmat_dfs_fin[-j],alpha_mats_k[-j])))
-        }
-
-        # sampling first path coefficients from spike slab prior
-        alph_var = sigmasq[i-1,1]*solve(sigmasq[i-1,1]*solve(alpha_prior_V[[j]])+t(kmat_dfs_fin[[j]])%*%(kmat_dfs_fin[[j]]))
-        alph_var = as.matrix(Matrix::forceSymmetric(alph_var))
-        alph_mean = (1/sigmasq[i-1,1])*alph_var%*%t(kmat_dfs_fin[[j]])%*%(y - mean(y)-omega*Rem_term)
-        alpha_mats[[j]][i,] = rmvnorm(1, alph_mean,alph_var)
-
-      }
-
-      # sampling new phi
-      alpha_mats_k = lapply(alpha_mats, function(x) {x <- x[i, ]})
-      sigmasq[i,] = rinvgamma(1,length(y)/2+a/2,0.5*sum((y - mean(y) - Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))^2)+b/2)
-
+  if (sum(gam_mod) > 0) {
+    if (dist == "mvn"){
+      alpha_mats = alpha_creator(y, kmat_dfs_fin, alpha_prior_V, N_norm, dist = dist, sigmasq = sigmasq)
     } else if(dist == "ald"){
-
-      for (j in 1:sum(gam_mod)){
-
-        if(sum(gam_mod)==1){
-          Rem_term = 0
-        } else {
-          Rem_term = Reduce("+",(Map('%*%',kmat_dfs_fin[-j],alpha_mats_k[-j])))
-        }
-
-        # sampling first path coefficients from spike slab prior
-        ald_bigB_inv[[j]] = t(kmat_dfs[[j]])%*%solve(ald_z_mat)%*%kmat_dfs[[j]]/(sqrt(sigmasq[i-1,])*ald_tau^2) + solve(alpha_prior_V[[j]])
-        ald_bigB = solve(ald_bigB_inv[[j]])
-        alph_mean = ald_bigB%*%(kmat_dfs[[j]]%*%(solve(ald_z_mat))%*%as.matrix((y- mean(y)-omega*Rem_term)-ald_theta*ald_z_vec)/(sqrt(sigmasq[i-1,])*ald_tau^2))
-        alph_var = as.matrix(Matrix::forceSymmetric(ald_bigB))
-        alpha_mats[[j]][i,] = rmvnorm(1, alph_mean,alph_var)
-      }
-
-      ald_delta_sq = ((y- mean(y)-Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))^2)/(ald_tau^2*sqrt(sigmasq[i-1,]))
-      ald_gamma_sq = 2/sqrt(sigmasq[i-1,]) + (ald_theta^2)/(sqrt(sigmasq[i-1,])*ald_tau^2)
-      ald_delta = sqrt(ald_delta_sq)
-      ald_gamma = sqrt(ald_gamma_sq)
-
-      plc_hld_z = numeric(1)
-      for (k in 1:length(ald_z_vec)){
-        plc_hld_z = rgig(n=1, lambda = 0.5, chi = ald_delta_sq[k], psi = ald_gamma_sq)
-        ald_z_vec[k] = mean(plc_hld_z, na.rm=TRUE)
-        ald_z_mat[k,k] = ald_z_vec[k]
-      }
-
-      # sampling new phi
-      alpha_mats_k = lapply(alpha_mats, function(x) {x <- x[i, ]})
-      sigmasq[i,] =  (rinvgamma(1,n0/2+3*length(y)/2, s0/2+sum(ald_z_vec)+0.5*sum((solve(ald_z_mat))%*%(as.matrix(y- mean(y)-Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k)))-ald_theta*ald_z_vec)^2)/(ald_tau^2))))^2
+      alpha_mats = alpha_creator(y, kmat_dfs_fin, alpha_prior_V, N_norm, dist = dist, sigmasq = sigmasq, ald_tau=ald_tau, ald_theta=ald_theta, ald_z_vec=ald_z_vec, ald_z_mat=ald_z_mat, ald_bigB_inv=ald_bigB_inv)
     }
 
-    yhat = as.numeric(Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))
-    ll_vec = c(ll_vec, sum(dnorm(y, yhat, sigmasq[i,], log=TRUE)))
+    ll_vec = c()
+    for(i in 2:N_norm){
 
-    prcent = prcent + 1/(2*N_norm)*100
-    cat(sprintf("\rProgress: %.1f%%", prcent))
+      alpha_mats_k = lapply(alpha_mats, function(x) prv.alpha(x, i))
+
+      if(dist == "mvn"){
+
+        for (j in 1:sum(gam_mod)){
+
+          if(sum(gam_mod)==1){
+            Rem_term = 0
+          } else {
+            Rem_term = Reduce("+",(Map('%*%',kmat_dfs_fin[-j],alpha_mats_k[-j])))
+          }
+
+          # sampling first path coefficients from spike slab prior
+          alph_var = sigmasq[i-1,1]*solve(sigmasq[i-1,1]*solve(alpha_prior_V[[j]])+t(kmat_dfs_fin[[j]])%*%(kmat_dfs_fin[[j]]))
+          alph_var = as.matrix(Matrix::forceSymmetric(alph_var))
+          alph_mean = (1/sigmasq[i-1,1])*alph_var%*%t(kmat_dfs_fin[[j]])%*%(y - mean(y)-omega*Rem_term)
+          alpha_mats[[j]][i,] = rmvnorm(1, alph_mean,alph_var)
+
+        }
+
+        # sampling new phi
+        alpha_mats_k = lapply(alpha_mats, function(x) {x <- x[i, ]})
+        sigmasq[i,] = rinvgamma(1,length(y)/2+a/2,0.5*sum((y - mean(y) - Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))^2)+b/2)
+
+      } else if(dist == "ald"){
+
+        for (j in 1:sum(gam_mod)){
+
+          if(sum(gam_mod)==1){
+            Rem_term = 0
+          } else {
+            Rem_term = Reduce("+",(Map('%*%',kmat_dfs_fin[-j],alpha_mats_k[-j])))
+          }
+
+          # sampling first path coefficients from spike slab prior
+          ald_bigB_inv[[j]] = t(kmat_dfs[[j]])%*%solve(ald_z_mat)%*%kmat_dfs[[j]]/(sqrt(sigmasq[i-1,])*ald_tau^2) + solve(alpha_prior_V[[j]])
+          ald_bigB = solve(ald_bigB_inv[[j]])
+          alph_mean = ald_bigB%*%(kmat_dfs[[j]]%*%(solve(ald_z_mat))%*%as.matrix((y- mean(y)-omega*Rem_term)-ald_theta*ald_z_vec)/(sqrt(sigmasq[i-1,])*ald_tau^2))
+          alph_var = as.matrix(Matrix::forceSymmetric(ald_bigB))
+          alpha_mats[[j]][i,] = rmvnorm(1, alph_mean,alph_var)
+        }
+
+        ald_delta_sq = ((y- mean(y)-Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))^2)/(ald_tau^2*sqrt(sigmasq[i-1,]))
+        ald_gamma_sq = 2/sqrt(sigmasq[i-1,]) + (ald_theta^2)/(sqrt(sigmasq[i-1,])*ald_tau^2)
+        ald_delta = sqrt(ald_delta_sq)
+        ald_gamma = sqrt(ald_gamma_sq)
+
+        plc_hld_z = numeric(1)
+        for (k in 1:length(ald_z_vec)){
+          plc_hld_z = rgig(n=1, lambda = 0.5, chi = ald_delta_sq[k], psi = ald_gamma_sq)
+          ald_z_vec[k] = mean(plc_hld_z, na.rm=TRUE)
+          ald_z_mat[k,k] = ald_z_vec[k]
+        }
+
+        # sampling new phi
+        alpha_mats_k = lapply(alpha_mats, function(x) {x <- x[i, ]})
+        sigmasq[i,] =  (rinvgamma(1,n0/2+3*length(y)/2, s0/2+sum(ald_z_vec)+0.5*sum((solve(ald_z_mat))%*%(as.matrix(y- mean(y)-Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k)))-ald_theta*ald_z_vec)^2)/(ald_tau^2))))^2
+      }
+
+      yhat = as.numeric(Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))
+      ll_vec = c(ll_vec, sum(dnorm(y, yhat, sigmasq[i,], log=TRUE)))
+
+      prcent = prcent + 1/(2*N_norm)*100
+      cat(sprintf("\rProgress: %.1f%%", prcent))
+    }
+  } else {
+    alpha_mats = list()
+    sigmasq[,1] = var(y)  # or a constant prior
+    for(i in 2:N_norm){
+      ll_vec = c(ll_vec, sum(dnorm(y, mean(y), sqrt(sigmasq[i,]), log = TRUE)))
+      prcent = prcent + 1/(2*N_norm)*100
+      cat(sprintf("\rProgress: %.1f%%", prcent))
+    }
   }
-
 
   posterior_mean_alpha = list()
   posterior_var_alpha = list()
-  # posterior_mean
-  if(dist == "mvn"){
+
+  if (sum(gam_mod) == 0) {
+    sigmasq_hat = var(y)
+
+    # Populate zero posterior means and variances for all pathways
+    for (j in 1:num_pwy) {
+      posterior_mean_alpha[[j]] = rep(0, nx)
+      posterior_var_alpha[[j]] = matrix(0, nx, nx)
+    }
+
+    # Populate alpha_mats_k with zero vectors
+    alpha_mats_k = posterior_mean_alpha
+
+  } else if(dist == "mvn"){
 
     sigmasq_hat = (0.5*sum((y - mean(y) - Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))^2)+b/2)/(length(y)/2+a/2 -1)
 
@@ -783,8 +807,13 @@ MLNR = function(dat, num_pwy, mlnr_rho = 1, skipper = 300, smpl.sz = 2, N_norm =
 
   alpha_mats_k = posterior_mean_alpha
 
-  yhat = as.numeric(Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))*sd(out_list[['y']])+mean(out_list[['y']])
-  MLN_mse = mean((y-Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))^2)
+  if (sum(gam_mod) == 0){
+    yhat = rep(mean(y), length(y)) * sd(out_list[['y']]) + mean(out_list[['y']])
+    MLN_mse = mean((y - mean(y))^2)
+  } else {
+    yhat = as.numeric(Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k)))) * sd(out_list[['y']]) + mean(out_list[['y']])
+    MLN_mse = mean((y - Reduce("+",(Map('%*%',kmat_dfs_fin,alpha_mats_k))))^2)
+  }
 
 
   ll_met = sum(dnorm(y, yhat, sigmasq[N_norm,], log=TRUE))
