@@ -88,8 +88,9 @@ plot(model$yhat, model$y, main = "Actual vs. Predicted")
 3) Visualization:
 ```r
 # You can also create a nested network visualization.
+df_plot = df[,2:ncol(df)]
 names_vector <- paste0("S_{", 1:num_sets, "}") # Change this line to create custom set names
-CreateNetworkViz(df, model[["gamma"]], model[["all_xi"]], num_sets, set_names = names_vector) # Creates a visualization of the network. Connected elements/sets are all relevant to the response
+CreateNetworkViz(df_plot, model[["gamma"]], model[["all_xi"]], num_sets, set_names = names_vector) # Creates a visualization of the network. Connected elements/sets are all relevant to the response
 ```
 
 4) Prediction:
